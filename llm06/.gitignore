@@ -1,0 +1,45 @@
+# Private credentials and local overrides (keep the documented template).
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python environments, bytecode and test/tool caches.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Project-owned dependency caches and Rust build outputs.
+.cache/
+/native/target/
+/native/loop-bridge/target/
+
+# Downloaded sources, normalized datasets and generated run evidence.
+/data/
+/logs/
+/results/
+/reports/
+*.log
+*.pid
+
+# Editor, OS and temporary files.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+*.tmp
+*.download

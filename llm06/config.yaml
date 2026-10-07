@@ -1,0 +1,21 @@
+version: 1
+target:
+  transport: loop
+  provider: soket
+  model: sarvam-30b
+  max_tokens: 1024
+  timeout_seconds: 90
+judge: null
+dataset: agent-safety-bench
+revision: b7761ca4c4e7a5937f0b6ad11dd24ce19163c454
+sample_limit: 30
+seed: 6
+max_turns: 6
+action_budget: 12
+retries: 1
+concurrency: 1
+variants: [least, broad]
+results_dir: results
+reports_dir: reports
+domains: []
+categories: []
