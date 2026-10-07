@@ -1,0 +1,26 @@
+{
+  "original_implementation": {
+    "__init__.py": "1f88b941f8a55f2bbc2dc4ed667644442781698b734dc887df7721138473f83c",
+    "schema.py": "b82c0f50bc4d902f248357e59462dccf99258b3116c265e7a031520c6d93c5a3",
+    "config.py": "5aff2fa8330bc30b2158555b8ac04cf9f6a0d9ce3ed32992909036dd8745ff4c",
+    "datasets.py": "8a983df47816425dbf0fe5a282fed6e9cc57465b8ab0032ed96b093496b19bb3",
+    "storage.py": "86159dafbf84e0fa78bfaff3317a1dceaf8f0002d943da25a7bea6e14a8eb4ce",
+    "client.py": "da694fe4b01c98072c359199696ba245cbb80751d24aa12f1273eef5042723d2",
+    "runner.py": "9c2d63832725be86642d9847146dae272e33d382a476c728b25b1eaaec8564a7",
+    "evaluation.py": "52b3721d70915d71f68d0ae1e350e378915cd923d25471ad18e52b26e071d9b9",
+    "loop_transport.py": "9d3699fa05a68dc7fc856fc12fd92fdd5e027b96dcbdf345eae7e0d6a8540d86"
+  },
+  "relocated_implementation": {
+    "__init__.py": "1f88b941f8a55f2bbc2dc4ed667644442781698b734dc887df7721138473f83c",
+    "schema.py": "b82c0f50bc4d902f248357e59462dccf99258b3116c265e7a031520c6d93c5a3",
+    "config.py": "64061321dd5bccf31a013ae0db9352fcc4ce6e26c1c5be12ac14d0ffc4ddf668",
+    "datasets.py": "8a983df47816425dbf0fe5a282fed6e9cc57465b8ab0032ed96b093496b19bb3",
+    "storage.py": "86159dafbf84e0fa78bfaff3317a1dceaf8f0002d943da25a7bea6e14a8eb4ce",
+    "client.py": "da694fe4b01c98072c359199696ba245cbb80751d24aa12f1273eef5042723d2",
+    "runner.py": "9c2d63832725be86642d9847146dae272e33d382a476c728b25b1eaaec8564a7",
+    "evaluation.py": "52b3721d70915d71f68d0ae1e350e378915cd923d25471ad18e52b26e071d9b9",
+    "loop_transport.py": "2f89695b799e2a7e55140f4e29163d19b2ddf42e4f69ac2991772203e6fd876d"
+  },
+  "old_bridge": "/home/aman/owasp/native/loop-bridge/target/debug/owasp-loop-bridge",
+  "new_bridge": "/home/aman/owasp/llm02/native/loop-bridge/target/debug/owasp-loop-bridge"
+}

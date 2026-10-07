@@ -1,0 +1,10 @@
+{
+  "agent_dir": "/home/aman/.loop/agent",
+  "api": "openai-completions",
+  "base_url": "http://172.17.99.145:31184/v1",
+  "model": "sarvam-30b",
+  "ok": true,
+  "provider": "soket",
+  "transport": "loop-ai",
+  "bridge_sha256": "781c68cb88be1009d716a12b25afc4180ea232b18e0690c2bb9f2130e01cb5a8"
+}

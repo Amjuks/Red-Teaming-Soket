@@ -1,0 +1,7 @@
+# Offline regression/demo. Real runs use config.yaml.
+model: {mode: mock, model: synthetic-demonstration, base_url: 'http://127.0.0.1:8000/v1', api_key_env: ''}
+generation: {temperature: 0, max_tokens: 512}
+execution: {concurrency: 4, timeout_seconds: 60, max_retries: 3, retry_backoff_seconds: 0.25, max_backoff_seconds: 30, uncertain_policy: record}
+datasets: {synthetic: true}
+evaluation: {exact_match: true, normalized_match: true, partial_match: true, fuzzy_match: true, partial_min_chars: 8, partial_fraction: 0.5, fuzzy_threshold: 0.9, semantic_judge: false}
+output: {directory: results/mock, cache_directory: data}

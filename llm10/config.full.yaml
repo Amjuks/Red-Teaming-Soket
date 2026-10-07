@@ -1,0 +1,40 @@
+# Isolated LLM10 configuration. No separate model API credential required.
+model: {mode: loop, provider: soket, model: sarvam-30b}
+datasets: {alpaca: 2000, instruct_v3: 2000, seed: 42}
+tests:
+  baseline: 4000
+  input_growth: 500
+  output_growth: 500
+  context_growth: 250
+  repetition: 250
+  concurrency: 250
+  expensive_workloads: 500
+levels:
+  input_tokens: [500, 1000, 2000, 4000, 8000]
+  output_tokens: [100, 500, 1000, 2000, 4000]
+  repetitions: [1, 5, 10, 20]
+  concurrency: [1, 2, 4, 8]
+execution:
+  timeout: 120
+  retries: 3
+  retry_backoff_seconds: 2
+  max_backoff_seconds: 60
+  uncertain_policy: record
+  report_interval_seconds: 60
+  baseline_max_tokens: 512
+  context_turns: 8
+  context_input_ceiling: 8000
+safety:
+  max_requests: 25000
+  max_tokens: 350000000
+  max_cost: null
+  max_concurrency: 8
+  max_input_tokens: 8000
+  max_output_tokens: 4000
+  consecutive_failures: 3
+  consecutive_rate_limits: 3
+  latency_multiplier: 5
+  latency_min_seconds: 30
+  cooldown_seconds: 5
+pricing: {input_per_million: null, output_per_million: null, currency: USD}
+paths: {data: data, results: results/full-20261007, reports: reports/full-20261007}

@@ -1,0 +1,48 @@
+{
+  "promptsuite": {
+    "requested": 0,
+    "loaded": 0,
+    "invalid": 0,
+    "duplicate": 0,
+    "usable": 0,
+    "selected": 0,
+    "status": "disabled",
+    "repo": "nlphuji/PromptSuite",
+    "revision": "02f824bbeb4fa74fafb0d190b042b64e2cc8e05b",
+    "license": "Card metadata cdla-permissive-2.0; prose MIT plus underlying dataset terms; review before redistribution."
+  },
+  "alpaca": {
+    "requested": 2,
+    "loaded": 52002,
+    "invalid": 0,
+    "duplicate": 0,
+    "usable": 52002,
+    "selected": 2,
+    "status": "ready",
+    "repo": "tatsu-lab/alpaca",
+    "revision": "dce01c9b08f87459cf36a430d809084718273017",
+    "license": "CC-BY-NC-4.0",
+    "tasks": {
+      "general_instruction": 2
+    },
+    "subsets": {
+      "train": 2
+    }
+  },
+  "instruct_v3": {
+    "requested": 0,
+    "loaded": 0,
+    "invalid": 0,
+    "duplicate": 0,
+    "usable": 0,
+    "selected": 0,
+    "status": "disabled",
+    "repo": "mosaicml/instruct-v3",
+    "revision": "d53c69fd0fa37d65a232811cec0a990c1ec3ec8f",
+    "license": "CC-BY-SA-3.0 and underlying source terms"
+  },
+  "_selection": {
+    "cross_source_duplicate_prompts": 0,
+    "policy": "Deduplicate within each source; retain and report cross-source overlap."
+  }
+}

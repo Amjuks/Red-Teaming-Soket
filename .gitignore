@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.env
+data/
+results/
+reports/
+logs/
+.loop/
+*.egg-info/
+native/loop-bridge/target/

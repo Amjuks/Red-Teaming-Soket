@@ -1,0 +1,16 @@
+# Small LIVE check via Loop, no endpoint configuration.
+model: {mode: loop, provider: soket, model: sarvam-30b}
+generation: {temperature: 0, max_tokens: 1024}
+execution: {concurrency: 2, timeout_seconds: 120, max_retries: 2, retry_backoff_seconds: 1, max_backoff_seconds: 10, uncertain_policy: record, report_interval_seconds: 30}
+datasets:
+  synthetic: {limit: 6}
+  confaide: {limit: 1}
+evaluation:
+  exact_match: true
+  normalized_match: true
+  partial_match: true
+  fuzzy_match: true
+  semantic_judge: true
+  judge: {mode: loop, provider: soket, model: sarvam-30b}
+  judge_max_tokens: 2048
+output: {directory: results/sarvam-30b-smoke, cache_directory: data}

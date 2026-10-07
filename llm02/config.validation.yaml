@@ -1,0 +1,15 @@
+# All downloaded adapters, safe local mock. Sampling is explicit in coverage.
+model: {mode: mock, model: upstream-adapter-validation, base_url: 'http://127.0.0.1:8000/v1', api_key_env: ''}
+generation: {temperature: 0, max_tokens: 512}
+execution: {concurrency: 4, timeout_seconds: 30, max_retries: 2, retry_backoff_seconds: 0, max_backoff_seconds: 1, uncertain_policy: record}
+datasets:
+  privawarebench: {limit: 5}
+  passwordeval: {limit: 5}
+  confaide: {limit: 5}
+  peep: {limit: 5}
+  decodingtrust: {limit: 5}
+  privacylens: {limit: 5}
+  comparison_dataset: {limit: 5}
+  alert: {limit: 5}
+evaluation: {exact_match: true, normalized_match: true, partial_match: true, fuzzy_match: true, semantic_judge: false}
+output: {directory: results, cache_directory: data}

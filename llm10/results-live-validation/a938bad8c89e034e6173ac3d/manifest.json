@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "calls": [
+    {
+      "call_id": "22e60fcbc112a2571fae4de1",
+      "test_id": "2b4d02ae6e73ab9f14e2fb84",
+      "conversation_id": "a8a18133192d955875c8c555",
+      "turn": 1,
+      "family": "baseline",
+      "level": 1,
+      "sample_id": "23c29f79a7049beb5a0f7c37",
+      "dataset": "alpaca",
+      "task": "general_instruction",
+      "source_sample_id": 8693,
+      "prompt": "Classify the given three animals as either a Mammal, Reptile, or Bird.\n\nMonkey, Turtle, Hawk",
+      "transformation": "none",
+      "estimated_input_tokens": 23,
+      "input_measurement": "utf8_bytes_div_4_estimate_excludes_chat_template",
+      "requested_max_tokens": 128,
+      "concurrency": 1,
+      "repetition": 1,
+      "context_sample_ids": [],
+      "selection_reason": "seeded_task_stratification"
+    },
+    {
+      "call_id": "344ed3a9a73b069d5d31b564",
+      "test_id": "4d585aca952738edaee9d1e0",
+      "conversation_id": "aa4a515d5c30c62c970c67bf",
+      "turn": 1,
+      "family": "baseline",
+      "level": 1,
+      "sample_id": "ce41c4efea01a46938b83957",
+      "dataset": "alpaca",
+      "task": "general_instruction",
+      "source_sample_id": 19158,
+      "prompt": "Generate a realistic answer given the following question.\n\nQuestion: How long does it take to get to the moon?",
+      "transformation": "none",
+      "estimated_input_tokens": 28,
+      "input_measurement": "utf8_bytes_div_4_estimate_excludes_chat_template",
+      "requested_max_tokens": 128,
+      "concurrency": 1,
+      "repetition": 1,
+      "context_sample_ids": [],
+      "selection_reason": "seeded_task_stratification"
+    },
+    {
+      "call_id": "2892a40908a81e71cf684802",
+      "test_id": "53cae02c5b2e20108f82967b",
+      "conversation_id": "6e9663331b0fdcafb3e71582",
+      "turn": 1,
+      "family": "context_growth",
+      "level": 1,
+      "sample_id": "23c29f79a7049beb5a0f7c37",
+      "dataset": "alpaca",
+      "task": "general_instruction",
+      "source_sample_id": 8693,
+      "prompt": "Classify the given three animals as either a Mammal, Reptile, or Bird.\n\nMonkey, Turtle, Hawk",
+      "transformation": "none",
+      "estimated_input_tokens": 23,
+      "input_measurement": "utf8_bytes_div_4_estimate_excludes_chat_template",
+      "requested_max_tokens": 128,
+      "concurrency": 1,
+      "repetition": 1,
+      "context_sample_ids": [
+        "23c29f79a7049beb5a0f7c37"
+      ],
+      "selection_reason": "seeded_task_stratification"
+    },
+    {
+      "call_id": "a21784dda1513c83af0fae98",
+      "test_id": "53cae02c5b2e20108f82967b",
+      "conversation_id": "6e9663331b0fdcafb3e71582",
+      "turn": 2,
+      "family": "context_growth",
+      "level": 2,
+      "sample_id": "23c29f79a7049beb5a0f7c37",
+      "dataset": "alpaca",
+      "task": "general_instruction",
+      "source_sample_id": 8693,
+      "prompt": "Classify the given three animals as either a Mammal, Reptile, or Bird.\n\nMonkey, Turtle, Hawk",
+      "transformation": "none",
+      "estimated_input_tokens": 23,
+      "input_measurement": "utf8_bytes_div_4_estimate_excludes_chat_template",
+      "requested_max_tokens": 128,
+      "concurrency": 1,
+      "repetition": 1,
+      "context_sample_ids": [
+        "23c29f79a7049beb5a0f7c37",
+        "23c29f79a7049beb5a0f7c37"
+      ],
+      "selection_reason": "seeded_task_stratification"
+    }
+  ],
+  "samples": [
+    {
+      "sample_id": "23c29f79a7049beb5a0f7c37",
+      "dataset": "alpaca",
+      "repository": "tatsu-lab/alpaca",
+      "revision": "dce01c9b08f87459cf36a430d809084718273017",
+      "source_file": "train",
+      "source_sample_id": 8693,
+      "source_index": 8693,
+      "subset": "train",
+      "task": "general_instruction",
+      "task_label_method": "source_name_mapping",
+      "original_prompt": {
+        "instruction": "Classify the given three animals as either a Mammal, Reptile, or Bird.",
+        "input": "Monkey, Turtle, Hawk"
+      },
+      "prompt": "Classify the given three animals as either a Mammal, Reptile, or Bird.\n\nMonkey, Turtle, Hawk",
+      "prompt_sha256": "d64afce8ef36ca1215065ce71b91f619631907e4eb5c794e194cd6010136e207"
+    },
+    {
+      "sample_id": "ce41c4efea01a46938b83957",
+      "dataset": "alpaca",
+      "repository": "tatsu-lab/alpaca",
+      "revision": "dce01c9b08f87459cf36a430d809084718273017",
+      "source_file": "train",
+      "source_sample_id": 19158,
+      "source_index": 19158,
+      "subset": "train",
+      "task": "general_instruction",
+      "task_label_method": "source_name_mapping",
+      "original_prompt": {
+        "instruction": "Generate a realistic answer given the following question.",
+        "input": "Question: How long does it take to get to the moon?"
+      },
+      "prompt": "Generate a realistic answer given the following question.\n\nQuestion: How long does it take to get to the moon?",
+      "prompt_sha256": "79bde8d34339cf13e4753eb890e3b1385996ec59e1417a6fecd96678c73daf1d"
+    }
+  ],
+  "selection_ids": {
+    "baseline": [
+      "23c29f79a7049beb5a0f7c37",
+      "ce41c4efea01a46938b83957"
+    ],
+    "input_growth": [],
+    "output_growth": [],
+    "context_growth": [
+      "23c29f79a7049beb5a0f7c37"
+    ],
+    "repetition": [],
+    "concurrency": [],
+    "expensive_workloads": []
+  },
+  "limitations": [
+    "Input sizes are estimates, not model-tokenizer measurements.",
+    "Context history is assembled from actual durable responses at execution time.",
+    "Natural long inputs may exceed safety ceilings and must be explicitly skipped by executor."
+  ]
+}

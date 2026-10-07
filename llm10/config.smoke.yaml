@@ -1,0 +1,74 @@
+# JSON is valid YAML. Uses 12 real prompts from anonymous public sources.
+{
+  "model": {
+    "mode": "loop",
+    "provider": "soket",
+    "model": "sarvam-30b"
+  },
+  "datasets": {
+    "alpaca": 6,
+    "instruct_v3": 6,
+    "seed": 42
+  },
+  "tests": {
+    "baseline": 12,
+    "input_growth": 2,
+    "output_growth": 2,
+    "context_growth": 2,
+    "repetition": 2,
+    "concurrency": 2,
+    "expensive_workloads": 2
+  },
+  "levels": {
+    "input_tokens": [
+      500,
+      1000
+    ],
+    "output_tokens": [
+      100,
+      500
+    ],
+    "repetitions": [
+      1,
+      2
+    ],
+    "concurrency": [
+      1,
+      2
+    ]
+  },
+  "execution": {
+    "timeout": 120,
+    "retries": 1,
+    "retry_backoff_seconds": 2,
+    "max_backoff_seconds": 60,
+    "uncertain_policy": "record",
+    "report_interval_seconds": 60,
+    "baseline_max_tokens": 100,
+    "context_turns": 2,
+    "context_input_ceiling": 8000
+  },
+  "safety": {
+    "max_requests": 50,
+    "max_tokens": 100000,
+    "max_cost": null,
+    "max_concurrency": 2,
+    "max_input_tokens": 8000,
+    "max_output_tokens": 500,
+    "consecutive_failures": 3,
+    "consecutive_rate_limits": 3,
+    "latency_multiplier": 5,
+    "latency_min_seconds": 30,
+    "cooldown_seconds": 5
+  },
+  "pricing": {
+    "input_per_million": null,
+    "output_per_million": null,
+    "currency": "USD"
+  },
+  "paths": {
+    "data": "data",
+    "results": "results",
+    "reports": "reports"
+  }
+}

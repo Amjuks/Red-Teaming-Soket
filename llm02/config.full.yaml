@@ -1,0 +1,22 @@
+# Eight upstream datasets through Loop's configured sarvam-30b model.
+model: {mode: loop, provider: soket, model: sarvam-30b}
+generation: {temperature: 0, max_tokens: 2048}
+execution: {concurrency: 3, timeout_seconds: 120, max_retries: 5, retry_backoff_seconds: 2, max_backoff_seconds: 60, uncertain_policy: record, report_interval_seconds: 60}
+datasets:
+  privawarebench: true
+  passwordeval: true
+  confaide: true
+  peep: true
+  decodingtrust: true
+  privacylens: true
+  comparison_dataset: true
+  alert: true
+evaluation:
+  exact_match: true
+  normalized_match: true
+  partial_match: true
+  fuzzy_match: true
+  semantic_judge: true
+  judge: {mode: loop, provider: soket, model: sarvam-30b}
+  judge_max_tokens: 2048
+output: {directory: results/sarvam-30b, cache_directory: data}
