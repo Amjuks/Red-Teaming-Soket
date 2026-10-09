@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OWASP benchmark report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "run",
+    "progress",
+    "coverage",
+    "metrics",
+    "findings",
+    "limitations",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.1.0"
+    },
+    "benchmark": {
+      "type": "object",
+      "required": [
+        "id",
+        "title"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "llm02",
+            "llm06",
+            "llm10"
+          ]
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "run": {
+      "type": "object",
+      "required": [
+        "id",
+        "model",
+        "execution_state",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "model": {
+          "type": "object"
+        },
+        "execution_state": {
+          "enum": [
+            "partial",
+            "finished"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "progress": {
+      "type": "object",
+      "required": [
+        "unit",
+        "planned",
+        "completed",
+        "errored",
+        "skipped",
+        "pending"
+      ],
+      "properties": {
+        "unit": {
+          "enum": [
+            "test",
+            "scenario_variant",
+            "workload_call"
+          ]
+        },
+        "planned": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "errored": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object"
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Complete native benchmark metrics, preserving original denominators and unknown values."
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "severity",
+          "evidence",
+          "details"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "severity": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "details": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "path",
+          "media_type",
+          "sensitivity"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "media_type": {
+            "type": "string"
+          },
+          "sensitivity": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

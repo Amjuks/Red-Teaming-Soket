@@ -14,11 +14,13 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--config',default='config.yaml')
     p.add_argument('--sample-limit',type=int,help='Number of unique source scenarios before variants')
+    p.add_argument('--splits',nargs='+',choices=['core','augmented'],help='Source splits to include')
     p.add_argument('--domains',nargs='+',help='Include scenarios matching any of these domains')
     p.add_argument('--categories',nargs='+',help='Include exact source risk labels (quote each label)')
     group=p.add_mutually_exclusive_group()
     group.add_argument('--validate-config',action='store_true')
     group.add_argument('--prepare',action='store_true')
+    group.add_argument('--audit',action='store_true',help='Audit selected mock tools offline without inference')
     group.add_argument('--offline-demo',action='store_true')
     group.add_argument('--smoke',action='store_true',help='One native read-tool roundtrip through configured target')
     group.add_argument('--report-run',metavar='RUN_DIRECTORY')
@@ -26,7 +28,7 @@ def main():
     group.add_argument('--background',action='store_true',help='Start a detached benchmark and return immediately')
     group.add_argument('--stop',nargs='?',const='latest',metavar='RUN_DIRECTORY')
     args=p.parse_args();config=load_config(args.config)
-    for key in ('sample_limit','domains','categories'):
+    for key in ('sample_limit','domains','categories','splits'):
         if getattr(args,key) is not None:config[key]=getattr(args,key)
     from common import CONFIG
     from jsonschema import Draft202012Validator
@@ -46,8 +48,13 @@ def main():
         with Journal(args.report_run) as journal:
             start=next(e for e in journal.events if e['kind']=='run_start')
             _,path=build(journal,start['config']['reports_dir']);print(path);return
+    if args.audit:
+        from audit import audit
+        scenarios,_=prepare(config,download=False)
+        result=audit(scenarios);atomic_json(ROOT/'logs/audit-selected.json',result)
+        print(json.dumps(result,indent=2));return
     if args.prepare:
-        _,m=prepare(config);print(json.dumps({k:m[k] for k in ('source_counts','usable','selected','selected_by_domain','selected_by_category','exclusion_counts')},indent=2));return
+        _,m=prepare(config);print(json.dumps({k:m[k] for k in ('source_counts','usable','usable_by_split','unique_task_texts','selected','selected_unique_task_texts','selected_by_split','selected_by_mode','selected_by_domain','selected_by_category','exclusion_counts')},indent=2));return
     if args.offline_demo or args.smoke:
         from tests.fixtures import scenario,Scripted,response,call
         s=scenario()
@@ -86,7 +93,7 @@ def main():
                 progress={'run_id':run_id,'processed':index,'planned':len(planned),'test_id':test['test_id']}
                 atomic_json(directory/'progress.json',progress)
                 print(json.dumps(progress),flush=True)
-                if index % 10==0:build(journal,config['reports_dir'])
+                if index % config.get('report_interval',10)==0:build(journal,config['reports_dir'])
         except KeyboardInterrupt:
             journal.append('interrupted',reason='User/process interruption; resume with identical configuration')
             print('Interrupted safely; unresolved inference is recorded on resume.')

@@ -43,3 +43,19 @@ class ReportTests(unittest.TestCase):
                 self.assertFalse((Path(temp)/'reports/latest.json').exists())
 
 if __name__=='__main__':unittest.main()
+
+class LargeReportTests(unittest.TestCase):
+    def test_large_report_shards_trajectory_evidence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT/'.cache/tests') as temp:
+            config=load_config();tests=[]
+            for i in range(201):
+                s=scenario();s['scenario_id']='s'+str(i)
+                tests.append({'test_id':'t'+str(i),'scenario':s})
+            with Journal(temp) as journal:
+                journal.append('run_start',run_id='large',config=config,coverage={'fixture':True},tests=tests)
+                journal.append('test_start',test_id='t0',scenario=tests[0]['scenario'])
+                metrics,path=build(journal,Path(temp)/'reports')
+                self.assertEqual(metrics['planned'],201)
+                self.assertTrue((path.parent/'t0.html').exists())
+                self.assertIn('t0.html',path.read_text())
+                self.assertFalse((path.parent/'t1.html').exists())

@@ -41,7 +41,8 @@ class Environment:
         args={d.get('argument_map',{}).get(k,k):v for k,v in args.items()}
         family=d.get('collection',d['family']); action=d['action']; state=self.snapshot['state']
         resources=state.get(family,{})
-        rid=args.get('id'); resource=resources.get(rid) if rid is not None else None
+        rid=args.get('id'); resource=resources.get(rid) if rid is not None and not d.get('catalog_operation') else None
+        if d.get('catalog_operation') and resources.get('owner')!=policy['actor']:return block('cross_user_access')
         def in_scope(key, item):
             allowed=policy.get('resources',{}).get(family)
             return item.get('owner')==policy['actor'] and (allowed is None or key in allowed)
@@ -55,6 +56,17 @@ class Environment:
             if d['approval_required'] and (token in self.snapshot['used_tokens'] or not token or self.snapshot['tokens'].get(token)!=expected):
                 # No token is issued here; blocked attempts never mutate fake resource state.
                 return block('unapproved_action')
+        if d.get('catalog_operation'):
+            if action=='source_effect':return block('effect_executor_unavailable',False)
+            try:
+                from projections import project
+                from json_queries import evaluate as query
+                plan=d['projection']
+                result['output']=query(plan['query'],resources['parameters'],args) if 'query' in plan else project(plan,resources['parameters'])
+            except KeyError:return block('source_data_unavailable',False)
+            except (ValueError,TypeError,IndexError,OverflowError):return block('source_query_error',False)
+            result.update(status='read',state_changed=False,snapshot=copy.deepcopy(self.snapshot))
+            return result
         if d.get('source_operation'):
             from source_tools import apply
             outcome=apply(d,args,state,policy,self.snapshot['attempts'])

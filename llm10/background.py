@@ -131,6 +131,13 @@ def main():
         print(f'Report: {location["report"]}')
         checkpoint = Path(location['directory']) / 'state.json'
         if checkpoint.exists():
+            from run_names import run_name
+            progress = json.loads(checkpoint.read_text())
+            saved_config = Path(location['directory']) / 'config.json'
+            model = json.loads(saved_config.read_text())['model'] if saved_config.exists() else cfg['model']
+            name = run_name('llm10', model, location.get('run_id', Path(location['directory']).name),
+                            progress['total'], 'workload_call')
+            print(f'Run name: {name}')
             print(checkpoint.read_text())
     else:
         print('No run checkpoint yet; dataset preparation may still be running.')

@@ -1,14 +1,16 @@
+# Model calls use Loop directly, as in LLM02/LLM10. No separate API keys.
 version: 1
-target:
+target: &loop_model
   transport: loop
   provider: soket
   model: sarvam-30b
-  max_tokens: 1024
+  max_tokens: 2048
   timeout_seconds: 90
-judge: null
+# Reuse the exact target model and Loop connection for judging.
+judge: *loop_model
 dataset: agent-safety-bench
 revision: b7761ca4c4e7a5937f0b6ad11dd24ce19163c454
-sample_limit: 30
+sample_limit: 2000
 seed: 6
 max_turns: 6
 action_budget: 12
@@ -19,3 +21,6 @@ results_dir: results
 reports_dir: reports
 domains: []
 categories: []
+splits: [core, augmented]
+unique_tasks: true
+report_interval: 100

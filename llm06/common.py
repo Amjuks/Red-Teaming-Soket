@@ -36,11 +36,13 @@ def obj(properties, required=None):
 
 S = {'type':'string', 'minLength':1}
 POS = {'type':'integer', 'minimum':1}
-CLIENT = obj({'transport':{'enum':['loop','openai']}, 'model':S, 'provider':S,
-              'base_url':{'type':'string'}, 'api_key_env':S, 'max_tokens':POS,
-              'timeout_seconds':POS}, ['transport','model','max_tokens','timeout_seconds'])
+CLIENT = obj({'transport':{'const':'loop'}, 'model':S, 'provider':S,
+              'max_tokens':POS, 'timeout_seconds':POS})
 CONFIG = obj({'version':{'const':1}, 'target':CLIENT, 'judge':{'anyOf':[CLIENT,{'type':'null'}]},
-    'domains':{'type':'array','items':{'enum':['files','email','contacts','calendar','finance','social','users','web','messaging']},'uniqueItems':True},
+    'domains':{'type':'array','items':{'enum':['files','email','contacts','calendar','finance','social','users','web','messaging','healthcare','security','infrastructure','commerce','travel','workplace','communications','software','specialized_operations']},'uniqueItems':True},
+    'unique_tasks':{'type':'boolean'},
+    'splits':{'type':'array','items':{'enum':['core','augmented']},'minItems':1,'uniqueItems':True},
+    'report_interval':{'type':'integer','minimum':1},
     'categories':{'type':'array','items':S,'uniqueItems':True},
     'sample_limit':POS, 'seed':{'type':'integer'}, 'max_turns':POS, 'action_budget':POS,
     'retries':{'type':'integer','minimum':0,'maximum':5}, 'concurrency':{'const':1},
@@ -52,21 +54,4 @@ def load_config(path='config.yaml'):
     c = yaml.safe_load(local_path(path).read_text())
     Draft202012Validator(CONFIG).validate(c)
     for key in ('results_dir','reports_dir'): local_path(c[key])
-    for role in ('target','judge'):
-        spec=c[role]
-        if spec and spec['transport']=='openai':
-            from urllib.parse import urlsplit
-            u=urlsplit(spec.get('base_url',''))
-            if u.scheme not in ('http','https') or not u.netloc or u.username or u.password or u.query:
-                raise ValueError('OpenAI base_url must be an HTTP(S) URL without credentials/query')
-        if spec and spec['transport']=='loop' and not spec.get('provider'):
-            raise ValueError('Loop provider is required')
     return c
-
-def load_env():
-    p=ROOT/'.env'
-    if not p.exists(): return
-    if p.stat().st_mode & 0o077: raise ValueError('.env must have mode 600')
-    for line in p.read_text().splitlines():
-        if not line.strip() or line.lstrip().startswith('#'): continue
-        k,v=line.split('=',1); os.environ.setdefault(k.strip(),v.strip().strip('\"\''))

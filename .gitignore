@@ -10,3 +10,6 @@ logs/
 .loop/
 *.egg-info/
 native/loop-bridge/target/
+
+# Generated readable run index and report shortcuts.
+/runs/

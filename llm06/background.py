@@ -1,5 +1,6 @@
 """Detached local jobs with PID identity checks and durable progress summaries."""
 import fcntl
+import shlex
 import json
 import os
 import signal
@@ -38,7 +39,7 @@ def launch(directory,arguments):
                 stdin=subprocess.DEVNULL,stdout=output,stderr=subprocess.STDOUT,start_new_session=True)
         atomic_json(directory/'background.json',{'pid':process.pid,'process_identity':process_identity(process.pid),
             'arguments':arguments,'log':str(log)})
-    print(f'Background PID: {process.pid}\nRun: {directory}\nLog: {log}\nCheck: .venv/bin/python run.py --status latest\nStop: .venv/bin/python run.py --stop latest')
+    print(f'Background PID: {process.pid}\nRun: {directory}\nLog: {log}\nCheck: .venv/bin/python run.py --status {shlex.quote(str(directory))}\nStop: .venv/bin/python run.py --stop {shlex.quote(str(directory))}')
 
 
 def stop(directory):
@@ -62,7 +63,11 @@ def status(directory):
     alive=running(directory)
     state='running' if alive else 'finished' if planned and len(results)==planned else 'stopped or foreground'
     report=local_path(start['config']['reports_dir'])/start['run_id']/'report.html' if start else None
-    return {**dict(counts),'state':state,'run_id':start['run_id'] if start else directory.name,
+    if str(ROOT.parent) not in sys.path:
+        sys.path.append(str(ROOT.parent))
+    from run_names import run_name
+    name = run_name('llm06', start['config']['target'], start['run_id'], planned, 'scenario_variant') if start else None
+    return {**dict(counts),'state':state,'run_name':name,'run_id':start['run_id'] if start else directory.name,
         'planned':planned,'finished_tests':len(results),'percent':round(100*len(results)/planned,1) if planned else 0,
         'completed':sum(e['status']=='completed' for e in results.values()),
         'errored':sum(e['status']=='errored' for e in results.values()),'pending_judge':len(pending),

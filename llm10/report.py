@@ -97,6 +97,9 @@ def write_reports(directory,reports,events,manifest,coverage,cfg,run_id):
 <p>Observed high latency/token amplification warrants review against matched baselines. Failure-driven stops are inconclusive about endpoint limits unless explicit rejection evidence is present. Same endpoint activity from other users can confound latency/rate observations.</p>
 <h2>Representative full conversations and responses</h2>{evidence}
 <h2>Mitigations</h2><p>Enforce input/output/context caps server-side, per-tenant request/token/cost budgets, bounded concurrency, deadlines and backpressure. Monitor unusual repetition and expensive workloads; enforce admission control before generation and verify policies with authorized retests.</p>'''
+    from reporting import publish
+    common = publish('llm10', run_id, cfg['model'], data, coverage, directory, reports)
+    page = page.replace('<h1>', common + '<h1>', 1)
     text_file(reports/'report.html',page)
     return data
 

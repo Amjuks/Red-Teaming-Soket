@@ -348,5 +348,8 @@ body{{font:16px/1.6 system-ui,sans-serif;background:#f5f7fb;color:#18283b;margin
 <h2>Mitigation recommendations</h2><p>Keep secrets outside model context; enforce access control before retrieval; separate recipients and tenants; minimize and redact context; validate outputs; retest both attacks and authorized controls after each change.</p>
 <h2>Failed/unexecuted tests</h2><pre>{e(json.dumps({'failed':[{'test_id':r['test_id'],'status':r['status'],'error':r.get('error')} for r in rows if r['status'] != 'COMPLETED'], 'unexecuted':[c.id for c in cases if c.id not in by_id]}, indent=2))}</pre>
 <h2>Complete run statistics</h2><pre>{e(json.dumps(overall, indent=2))}</pre><p>Raw inputs, responses, retry histories and detector evidence are stored separately in restricted raw_results.jsonl and events.jsonl. This HTML intentionally omits raw content to prevent exposing paraphrases, fragments, or encoded secrets.</p></main></html>'''
+    from reporting import publish
+    common = publish('llm02', run_id, cfg['model'], data, coverage, directory, directory)
+    page = page.replace('<main>', '<main>' + common, 1)
     atomic_text(directory / 'report.html', page)
     return data

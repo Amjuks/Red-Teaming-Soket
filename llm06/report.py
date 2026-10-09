@@ -2,7 +2,14 @@
 import csv
 import html
 import json
-from collections import Counter
+import sys
+from pathlib import Path
+
+# Support the existing standalone `python run.py` entry point.
+if str(Path(__file__).resolve().parents[1]) not in sys.path:
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
+from reporting import publish
+from collections import Counter, defaultdict
 from common import atomic_json, canonical, local_path
 from evaluator import evaluate
 
@@ -10,16 +17,21 @@ def rate(n,d,eligibility):return {'numerator':n,'denominator':d,'rate':n/d if d 
 
 def build(journal,report_dir):
     events=journal.events; start=next(e for e in events if e['kind']=='run_start'); run_id=start['run_id']
+    event_index=defaultdict(list)
+    for event in events:
+        if event.get('test_id'):event_index[event['test_id']].append(event)
     rows=[]; tools=[]; conversations=[]; findings=[]; results=[]
     for planned in start['tests']:
-        tid=planned['test_id'];s=planned['scenario'];ev=[e for e in events if e.get('test_id')==tid]
+        tid=planned['test_id'];s=planned['scenario'];ev=event_index[tid]
         end=next((e for e in reversed(ev) if e['kind']=='test_result'),None)
         status=end['status'] if end else ('pending_judge' if any(e['kind']=='target_done' for e in ev) else 'planned' if not ev else 'unfinished')
         evaluation=end['evaluation'] if end else evaluate(s,ev)
         base={'run_id':run_id,'test_id':tid,'scenario_id':s['scenario_id'],'variant_id':s['variant_id'],
               'dataset':s['source']['dataset'],'source_revision':s['source'].get('revision'), 'sample_id':s['source']['sample_id']}
         row={**base,'status':status,'safe':evaluation['safe'],'task_completed':evaluation['task_completed'],
-             'finding_count':len(evaluation['findings']),'category':s.get('category',[]),'domains':s.get('domains',['fixture']),'task':s['task']}
+             'finding_count':len(evaluation['findings']),'category':s.get('category',[]),'domains':s.get('domains',['fixture']),'task':s['task'],'coverage_mode':s.get('coverage_mode','explicit_json_adapter'),
+             'source_split':s['source']['sample_id'].split(':')[0],
+             'source_environments':s.get('source_environments',[])}
         rows.append(row);results.append({**row,'evaluation':evaluation})
         for f in evaluation['findings']:findings.append({**base,**f})
         for e in ev:
@@ -60,20 +72,23 @@ def build(journal,report_dir):
                 'risky':rate(sum(r['safe'] is False for r in group),len(group),'planned in group; overlapping groups are not additive')}
         return output
     metrics['by_domain']=breakdown('domains');metrics['by_category']=breakdown('category')
+    metrics['by_coverage_mode']=breakdown('coverage_mode');metrics['by_source_split']=breakdown('source_split')
     metrics['by_dataset']=breakdown('dataset');metrics['by_variant']=breakdown('variant_id')
     metrics['by_tool']={name:{'attempts':len(group),'blocked':sum(t['status']=='blocked' for t in group),
         'violating_attempts':rate(sum(bool(t['violations']) for t in group),len(group),'attempts for this tool'),
         'affected_tests':len({t['test_id'] for t in group})} for name in sorted({t['name'] for t in tools})
         for group in [[t for t in tools if t['name']==name]]}
     metrics['pairs']=[]
-    for sid in sorted({r['scenario_id'] for r in rows}):
-        pair={r['variant_id']:r for r in rows if r['scenario_id']==sid}
+    pair_index=defaultdict(dict)
+    tool_counts={t['test_id']:len(t['scenario']['tools']) for t in start['tests']}
+    for row in rows:pair_index[row['scenario_id']][row['variant_id']]=row
+    for sid,pair in sorted(pair_index.items()):
         if 'least' in pair and 'broad' in pair:
             metrics['pairs'].append({'scenario_id':sid,'sample_id':pair['least']['sample_id'],
                 'least_status':pair['least']['status'],'broad_status':pair['broad']['status'],
                 'least_findings':pair['least']['finding_count'],'broad_findings':pair['broad']['finding_count'],
                 'least_safe':pair['least']['safe'],'broad_safe':pair['broad']['safe'],
-                'added_tools':len(next(t['scenario']['tools'] for t in start['tests'] if t['test_id']==pair['broad']['test_id']))-len(next(t['scenario']['tools'] for t in start['tests'] if t['test_id']==pair['least']['test_id']))})
+                'added_tools':tool_counts[pair['broad']['test_id']]-tool_counts[pair['least']['test_id']]})
     metrics['execution_errors']=dict(Counter(e.get('reason','unspecified') for e in events if e['kind']=='target_error'))
     metrics['finish_reasons']=dict(Counter(str(e['response'].get('finish_reason')) for e in events if e['kind']=='target_response'))
     metrics['unique_scenarios']=len({r['scenario_id'] for r in rows})
@@ -90,13 +105,19 @@ def build(journal,report_dir):
     (directory/'results.jsonl').write_text(''.join(canonical(r)+'\n' for r in results))
     atomic_json(directory/'metrics.json',metrics)
     target=local_path(report_dir)/run_id;target.mkdir(parents=True,exist_ok=True)
-    render(target, start, metrics, rows, tools, findings, events)
+    common = publish('llm06', run_id, start['config']['target'], metrics, start.get('coverage', {}), directory, target, findings)
+    render(target, start, metrics, rows, tools, findings, events, common)
     return metrics,target/'report.html'
 
 
-def render(target,start,metrics,rows,tools,findings,events):
+def render(target,start,metrics,rows,tools,findings,events,common=''):
     """Readable summaries first; full original evidence remains expandable."""
     run_id=start['run_id']
+    event_index=defaultdict(list)
+    for event in events:
+        if event.get('test_id'):event_index[event['test_id']].append(event)
+    row_index={r['test_id']:r for r in rows}
+    large=len(rows)>200
     def esc(value):
         if value is None:return 'unknown'
         if isinstance(value,list):value=', '.join(str(v) for v in value)
@@ -119,7 +140,7 @@ def render(target,start,metrics,rows,tools,findings,events):
     body+=table(['Measure','Result','Eligible population'],[[label,measure(metrics[key]),metrics[key]['eligibility']] for label,key in [('Safe task completion — all planned','safe_task_completion_all_planned'),('Safe task completion — evaluable','safe_task_completion_evaluable'),('Task completion','task_completion'),('Established risky tests','risky_all_planned'),('Unsafe tool attempts','unsafe_tool_attempts')]])
     body+='<details><summary>Execution errors and provider finish reasons</summary>'+pre({'execution_errors':metrics['execution_errors'],'finish_reasons':metrics['finish_reasons']})+'</details>'
     body+='<p class="note">Judge: '+esc(start['config']['judge']['model'] if start['config']['judge'] else 'disabled')+'. Unknown safety or task completion never counts as success. No rule finding does not establish safety.</p></section>'
-    body+='<section id="categories"><h2>Where it fails</h2><h3>By tool domain</h3>'+grouped('by_domain')+'<h3>By source risk category</h3>'+grouped('by_category')+'<p>One scenario can span several domains or labels; group totals may overlap. These are selected-sample results, not estimates for the entire source corpus.</p></section>'
+    body+='<section id="categories"><h2>Where it fails</h2><h3>By tool domain</h3>'+grouped('by_domain')+'<h3>By source risk category</h3>'+grouped('by_category')+'<h3>By source split</h3>'+grouped('by_source_split')+'<h3>By adaptation mode</h3>'+grouped('by_coverage_mode')+'<p>One scenario can span several domains or labels; group totals may overlap. These are selected-sample results, not estimates for the entire source corpus.</p></section>'
     body+='<section id="findings"><h2>Important findings</h2>'
     if not findings:body+='<p>No deterministic policy violations recorded so far. See unknown outcomes and execution errors before interpreting this.</p>'
     for rule in sorted({f['rule'] for f in findings}):
@@ -129,9 +150,21 @@ def render(target,start,metrics,rows,tools,findings,events):
     body+='<section id="permissions"><h2>Permission comparison</h2>'+grouped('by_variant')+'<p>Least exposes the supported source tools. Broad advertises additional mock capabilities while retaining identical authorization. Counts compare the same source tasks; unknown safety is not a safe result.</p>'+table(['Source sample','Extra broad tools','Least status','Broad status','Least findings','Broad findings'],[[p['sample_id'],p.get('added_tools',0),p['least_status'],p['broad_status'],p['least_findings'],p['broad_findings']] for p in metrics['pairs']])+'</section>'
     body+='<section id="trajectories"><h2>Explore trajectories</h2><label for="filter">Filter by sample, domain, category, status or task</label><input id="filter" placeholder="For example: calendar, property loss, errored">'
     for planned in start['tests']:
-        tid=planned['test_id'];s=planned['scenario'];row=next(r for r in rows if r['test_id']==tid);ev=[e for e in events if e.get('test_id')==tid]
+        tid=planned['test_id'];s=planned['scenario'];row=row_index[tid];ev=event_index[tid]
         search=' '.join(str(row.get(k,'')) for k in ('sample_id','domains','category','status','task','variant_id'))
         body+='<details class="trajectory" id="test-'+esc(tid)+'" data-search="'+esc(search.lower())+'"><summary>'+esc(row['sample_id'])+' · '+esc(row['variant_id'])+' · '+esc(row['status'])+' · '+esc(row['domains'])+' · '+esc(row['finding_count'])+' findings</summary><h3>Task</h3><p>'+esc(s['task'])+'</p><p>Risk labels: '+esc(s.get('category'))+'</p>'
+        if large:
+            if ev:
+                detail=target/(tid+'.html')
+                stamp=target/(tid+'.stamp')
+                version=str(ev[-1]['seq'])
+                if not stamp.exists() or stamp.read_text()!=version:
+                    detail.write_text('<!doctype html><html lang="en"><meta charset="utf-8"><title>Trajectory '+esc(tid)+'</title><style>body{font:16px system-ui;padding:30px}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><a href="report.html#test-'+esc(tid)+'">Back to report</a><h1>'+esc(row['sample_id'])+'</h1>'+pre(s)+pre(ev)+'</html>')
+                    stamp.write_text(version)
+                body+='<p><a href="'+esc(tid)+'.html">Open complete trajectory and state evidence</a></p>'
+            else:body+='<p>This planned test has not started.</p>'
+            body+='</details>'
+            continue
         for event in ev:
             if event['kind']=='target_response':
                 body+='<h4>Assistant · turn '+esc(event['turn'])+'</h4>'+pre(event['response']['message'])
@@ -140,11 +173,11 @@ def render(target,start,metrics,rows,tools,findings,events):
             elif event['kind'] in ('target_error','target_transport_error','judge_error'):
                 body+='<p class="note">'+esc(event['kind'])+': '+esc(event.get('reason',event.get('error')))+'</p>'
         body+='<details><summary>Policy, original scenario and complete event evidence</summary>'+pre(s)+pre(ev)+'</details></details>'
-    body+='</section><section id="coverage"><h2>Coverage and limitations</h2><p>Source revision: '+esc(start['config'].get('revision'))+'. Local severity rubric: high for explicit authorization breaches, medium for action-budget excess. No real-world side effects are measured.</p><ul><li>Only explicitly mapped tool schemas run; unsupported environments and augmented executable code are excluded.</li><li>Source records receive local simulated ownership. Search uses lexical matching. Missing data returns source_data_unavailable.</li><li>Approval is deny-only in benchmark runs; grants are tested separately.</li><li>Additional dataset adapters and independent judge calibration remain pending.</li><li>Loop normalizes streamed argument JSON and missing usage; original wire bytes and reliable cost may be unavailable.</li></ul><details><summary>Coverage manifest, exclusions and configuration</summary>'+pre(coverage)+pre(start['config'])+'</details><details><summary>All metrics as JSON</summary>'+pre(metrics)+'</details></section>'
+    body+='</section><section id="coverage"><h2>Coverage and limitations</h2><p>Source revision: '+esc(start['config'].get('revision'))+'. Local severity rubric: high for explicit authorization breaches, medium for action-budget excess. No real-world side effects are measured.</p><ul><li>Only explicit JSON mappings or statically translated query plans run. Upstream Python is never imported or executed; unsupported syntax is excluded.</li><li>Source records receive local simulated ownership. Catalog queries preserve supported source filters; legacy adapters use lexical matching. Missing data returns source_data_unavailable. Catalog effects are deny-only approval probes.</li><li>Approval is deny-only in benchmark runs; grants are tested separately.</li><li>Additional dataset adapters and independent judge calibration remain pending.</li><li>Loop normalizes streamed argument JSON and missing usage; original wire bytes and reliable cost may be unavailable.</li></ul><details><summary>Coverage manifest, exclusions and configuration</summary>'+pre({k:v for k,v in coverage.items() if k not in ('excluded','selected_ids')})+pre(start['config'])+'</details><details><summary>All metrics as JSON</summary>'+pre(metrics)+'</details></section>'
     body+='<footer>Download analysis tables from results/'+esc(run_id)+'/ · Join CSVs on test_id; trace findings with evidence_seq into events.jsonl.</footer>'
     style='body{font:16px/1.6 system-ui,sans-serif;color:#17324a;background:#f5f7fa;margin:0}header,nav,section,footer{max-width:1180px;margin:auto;padding:24px}header{padding-top:44px}h1{font-size:36px;line-height:1.2}.eyebrow{font-size:12px;letter-spacing:2px;color:#336e79}nav{display:flex;gap:22px;flex-wrap:wrap}a{color:#126779}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.card,article{background:white;padding:20px;border:1px solid #dce4ec;border-radius:10px}.card strong{display:block;font-size:30px}.card span{font-size:13px}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;background:white}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e1e7ed;vertical-align:top}th{font-size:13px;background:#eaf0f5}.note{padding:14px;background:#fff5df;border-left:4px solid #d69e36}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;background:#edf1f6;font-size:12px}details{background:white;border:1px solid #dce4ec;border-radius:6px;margin:10px 0;padding:14px}summary{cursor:pointer;font-weight:600}input{display:block;padding:12px;margin:12px 0;width:min(90%,600px);font:inherit;border:1px solid #aabac9;border-radius:6px}article{margin:16px 0}footer{font-size:13px}'
     script="document.getElementById('filter').addEventListener('input',function(){const q=this.value.toLowerCase();document.querySelectorAll('.trajectory').forEach(e=>{e.hidden=!e.dataset.search.includes(q)});});"
-    page='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>LLM06 benchmark '+esc(run_id)+'</title><style>'+style+'</style></head><body>'+body+'<script>'+script+'</script></body></html>'
+    page='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>LLM06 benchmark '+esc(run_id)+'</title><style>'+style+'</style></head><body>'+common+body+'<script>'+script+'</script></body></html>'
     (target/'report.html').write_text(page)
     # Stable entry point tracks corpus runs only; probes cannot replace the benchmark link.
     if coverage.get('dataset')=='aradhye/agent-safety-bench':
