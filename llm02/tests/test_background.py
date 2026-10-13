@@ -26,7 +26,7 @@ def test_detached_background_runs_to_completion(tmp_path):
         time.sleep(0.05)
     assert state['status'] == 'finished', (logs / 'latest.log').read_text()
     assert state['exit_code'] == 0
-    assert (tmp_path / 'results/latest/report.html').is_file()
+    assert (tmp_path / 'results/latest/report.md').is_file()
     checkpoint = json.loads((tmp_path / 'results/latest/state.json').read_text())
     assert checkpoint['completed'] == 44
     assert checkpoint['remaining'] == 0

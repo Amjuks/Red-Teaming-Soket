@@ -28,9 +28,8 @@ def export_snapshot(directory):
                 raise ValueError('Journal integrity failure; snapshot aborted')
             event['checksum'] = checksum
             events.append(event)
-    root = directory/'report-snapshots'
-    root.mkdir(exist_ok=True)
-    output = Path(tempfile.mkdtemp(dir=root))
+    output = directory/'analysis'
+    output.mkdir(mode=0o700, exist_ok=True)
     # Use an isolated export directory and report root, never the live output paths.
     _, report = build(SimpleNamespace(events=events, directory=output), output/'reports')
     (output/'snapshot.json').write_text(json.dumps({'source_run':str(directory),

@@ -48,9 +48,9 @@ def test_full_csv_exact_values_channels_and_private_files(tmp_path):
     assert len(records(tmp_path / 'successful_attacks.csv')) == 1
     for path in tmp_path.glob('*.csv'):
         assert path.stat().st_mode & 0o777 == 0o600
-    # Public HTML remains redacted, with links to private CSVs.
-    assert case.protected_values[0] not in (tmp_path / 'report.html').read_text()
-    assert 'leak_evidence.csv' in (tmp_path / 'report.html').read_text()
+    # Markdown assessment remains redacted, with links to private CSVs.
+    assert case.protected_values[0] not in (tmp_path / 'report.md').read_text()
+    assert 'leak_evidence.csv' in (tmp_path / 'report.md').read_text()
 
 
 @pytest.mark.parametrize('method,text,matched', [
@@ -84,7 +84,7 @@ def test_snapshot_while_locked_ignores_torn_tail_without_modification(tmp_path):
         output = export_snapshot(tmp_path)
         assert store.path.read_bytes() == before
         assert len(records(output / 'test_details.csv')) == 1
-        assert not (tmp_path / 'report.html').exists()
+        assert not (tmp_path / 'report.md').exists()
 
 
 def test_empty_exports_have_headers(tmp_path):

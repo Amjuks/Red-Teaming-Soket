@@ -62,7 +62,10 @@ def status(directory):
     active=next((e['test_id'] for e in reversed(events) if e['kind']=='test_start' and e['test_id'] not in results),None)
     alive=running(directory)
     state='running' if alive else 'finished' if planned and len(results)==planned else 'stopped or foreground'
-    report=local_path(start['config']['reports_dir'])/start['run_id']/'report.html' if start else None
+    report=local_path(start['config']['reports_dir'])/start['run_id']/'report.md' if start else None
+    shared=ROOT.parent/'runs/llm06/report.json'
+    if start and shared.exists() and json.loads(shared.read_text())['run']['id']==start['run_id']:
+        report=shared.with_suffix('.md')
     if str(ROOT.parent) not in sys.path:
         sys.path.append(str(ROOT.parent))
     from run_names import run_name

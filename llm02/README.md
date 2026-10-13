@@ -75,10 +75,11 @@ cd /home/aman/owasp
 python3 export_reports.py --benchmark llm02
 ```
 
-Open **[the run index](../runs/index.html)** and choose a readable name such as
-`llm02-sarvam-30b-5697-tests-abcdefgh`. Names retain a short unique suffix; the
-original folders and full IDs stay unchanged. Re-export to refresh the snapshot.
-The running default also writes `results/sarvam-30b/latest/report.html`.
+Open **[the complete LLM02 Markdown assessment](../runs/llm02/report.md)**.
+This is the actual report, not a landing page. It uses the same sections and
+[structured schema](../report.schema.json) as the other risks. The adjacent
+`report.json` contains normalized metrics, coverage, findings and all native details.
+Re-export to refresh the same files; snapshots no longer accumulate.
 
 Start with errors and ungraded counts, then inspect disclosure findings and
 category breakdowns. Attack Success Rate uses **graded attack cases only**.
@@ -88,7 +89,7 @@ PrivAwareBench extraction is heuristic and contextual cases can remain ungraded.
 
 | File | What to look for |
 | --- | --- |
-| `report.html`, `report.json` | Human report and common machine-readable report |
+| `report.md`, `report.json` | Human report and common machine-readable report |
 | `successful_attacks.csv` | Completed attacks with detected disclosures |
 | `leak_evidence.csv` | Protected value, detector, response channel and evidence |
 | `conversation_turns.csv` | Exact requests, answers and returned reasoning by turn |
@@ -99,12 +100,26 @@ PrivAwareBench extraction is heuristic and contextual cases can remain ungraded.
 
 Join evidence using `test_id`. A missing final answer can still have returned
 reasoning; both channels are inspected. Multiple evidence rows are not multiple
-successful attacks. HTML omits raw protected values; CSV/JSONL evidence is sensitive.
-See the [shared report guide](../README.md#read-and-analyze-a-report) for the schema.
+successful attacks. Markdown omits raw protected values; CSV/JSONL evidence is sensitive.
+See the [shared report guide](../README.md#one-schema-for-all-risks) for the schema.
 
 ## Developer checks
 
 From `/home/aman/owasp`, run `llm02/.venv/bin/python -m pytest -q`.
 Source acquisition integration tests are opt-in with `LLM02_NETWORK_TESTS=1`.
-[RUN_LIVE.md](RUN_LIVE.md) has further evidence-export details;
-[VALIDATION.md](VALIDATION.md) records earlier validation work.
+The [workspace guide](../README.md) covers report refresh and latest-only retention.
+
+## Failure-only investigation
+
+Open [failed_instances.csv](../runs/llm02/failed_instances.csv) for recorded
+failures only. The first columns explain the problem and expected/observed behavior;
+full conversations, returned reasoning, evaluations and evidence follow. Execution,
+security, output, task and assessment failures are explicitly distinguished.
+Missing measurements carry reasons; non-applicable ratio columns are labeled.
+See the [shared investigation guide](../README.md#investigate-failures-and-missing-measurements)
+for inclusion rules and column meanings. Refresh using the workspace exporter.
+
+For a quick, small sample, open the [preview CSV](../runs/llm02/failed_instances.preview.csv).
+Generate it independently with `python3 preview_reports.py --benchmark llm02`
+from the workspace root. Defaults to at most 20 complete rows and 1 MB, sampled
+across the file and different case categories. Full reports remain unchanged.

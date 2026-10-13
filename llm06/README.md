@@ -91,10 +91,11 @@ cd /home/aman/owasp
 python3 export_reports.py --benchmark llm06
 ```
 
-Open **[the run index](../runs/index.html)** and select a name such as
-`llm06-sarvam-30b-4000-tests-b0cf3bf0`. Short suffixes distinguish similar runs;
-original folders and IDs remain intact. Re-export to refresh the snapshot.
-The regular running report is also available through `reports/index.html`.
+Open **[the complete LLM06 Markdown assessment](../runs/llm06/report.md)**.
+This is the actual report, not a landing page. It uses the same sections and
+[structured schema](../report.schema.json) as the other risks. The adjacent
+`report.json` contains normalized metrics, coverage, findings and all native details.
+Re-export to refresh the same files; snapshots no longer accumulate.
 
 1. Review completed, errored and unassessed counts.
 2. Compare source categories, domains and least/broad variants.
@@ -103,7 +104,7 @@ The regular running report is also available through `reports/index.html`.
 
 | File | Purpose |
 | --- | --- |
-| `report.html`, `report.json` | Human report and common machine-readable report |
+| `report.md`, `report.json` | Human report and common machine-readable report |
 | `scenarios.csv` | Task, variant, source and execution outcome |
 | `tool_calls.csv` | Tool attempts, blocks and policy results |
 | `conversations.csv` | Model requests/responses and recorded tool evidence |
@@ -113,7 +114,7 @@ The regular running report is also available through `reports/index.html`.
 
 Join CSVs on `test_id`, pair variants on `scenario_id`, and use `evidence_seq` to
 find the original journal event. The shared report preserves these details and
-all native metrics. See the [report guide](../README.md#read-and-analyze-a-report).
+all native metrics. See the [report guide](../README.md#one-schema-for-all-risks).
 
 ## Interpret results correctly
 
@@ -135,3 +136,18 @@ For a stopped run, rebuild with `.venv/bin/python run.py --report-run latest`.
 Use snapshots for active runs. For development, run
 `.venv/bin/python -m unittest discover -s tests -v`.
 [PIPELINE.md](PIPELINE.md) explains the process and examples in more detail.
+
+## Failure-only investigation
+
+Open [failed_instances.csv](../runs/llm06/failed_instances.csv) for recorded
+failures only. The first columns explain the problem and expected/observed behavior;
+full conversations, returned reasoning, evaluations and evidence follow. Execution,
+security, output, task and assessment failures are explicitly distinguished.
+Missing measurements carry reasons; non-applicable ratio columns are labeled.
+See the [shared investigation guide](../README.md#investigate-failures-and-missing-measurements)
+for inclusion rules and column meanings. Refresh using the workspace exporter.
+
+For a quick, small sample, open the [preview CSV](../runs/llm06/failed_instances.preview.csv).
+Generate it independently with `python3 preview_reports.py --benchmark llm06`
+from the workspace root. Defaults to at most 20 complete rows and 1 MB, sampled
+across the file and different case categories. Full reports remain unchanged.

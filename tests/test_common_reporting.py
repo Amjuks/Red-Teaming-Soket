@@ -37,14 +37,14 @@ class CommonReportingTests(unittest.TestCase):
                 metrics['unknown_measurement'] = None
                 page = publish(benchmark, 'run', {'model':'test'}, metrics, {'source':'fixture'}, directory, report_dir)
                 doc = json.loads((report_dir/'report.json').read_text())
-                self.assertEqual(doc['metrics'], metrics)
-                self.assertEqual(doc['coverage'], {'source':'fixture'})
+                self.assertEqual(doc['extensions']['metrics'], metrics)
+                self.assertEqual(doc['extensions']['coverage'], {'source':'fixture'})
                 self.assertEqual(doc['progress']['completed'], 2)
                 self.assertEqual(doc['progress']['errored'], 1)
                 self.assertEqual(doc['progress']['pending'], 1 if benchmark=='llm10' else 2)
                 self.assertEqual((report_dir/doc['artifacts'][0]['path']).resolve(), (directory/'metrics.json').resolve())
                 self.assertEqual(len(doc['artifacts']), 1)  # No links to nonexistent evidence.
-                self.assertIn('common-downloads', page)
+                self.assertIn('## Evidence and exports', page)
                 self.assertEqual((report_dir/'report.json').stat().st_mode & 0o777, 0o600)
 
     def test_findings_keep_evidence_and_unknown_severity(self):
@@ -58,3 +58,23 @@ class CommonReportingTests(unittest.TestCase):
             self.assertIsNone(doc['findings'][0]['severity'])
             self.assertEqual(doc['findings'][0]['evidence'], [{'attempt_id':'a'}])
             self.assertEqual(doc['run']['execution_state'],'finished')
+
+    def test_identical_sections_and_normalized_metric_shapes(self):
+        inputs = {
+            'llm02': {'overall':{'completed':0,'errors':0},'total_tests':0,'unexecuted':0,'findings':[]},
+            'llm06': {'status_counts':{},'planned':0},
+            'llm10': {'planned_calls':0,'successful_calls':0,'terminal_calls':0,'skipped_calls':0,
+                      'unfinished_calls':0,'overall':{},'assessment':{'findings':[], 'limitations':[]}}}
+        sections=[]
+        with tempfile.TemporaryDirectory() as tmp:
+            for risk,metrics in inputs.items():
+                target=Path(tmp)/risk;target.mkdir()
+                text=publish(risk,'r',{},metrics,{},target,target)
+                sections.append([line for line in text.splitlines() if line.startswith('## ')])
+                doc=json.loads((target/'report.json').read_text())
+                self.assertIsInstance(doc['metrics'],list)
+                self.assertIsInstance(doc['coverage'],list)
+                self.assertIn('assessment',doc)
+                self.assertEqual(doc['schema_version'],'2.1.0')
+                self.assertFalse(list(target.glob('*.html')))
+        self.assertEqual(sections[0],sections[1]);self.assertEqual(sections[1],sections[2])

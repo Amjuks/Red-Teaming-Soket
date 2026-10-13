@@ -14,7 +14,7 @@ Least / broad capability variants → 4,000 tests
                        ↓
 Loop model → proposed call → policy checks → simulated result → model
                        ↓
-Durable evidence → rules → optional judge → CSV / JSON / HTML
+Durable evidence → rules → optional judge → CSV / JSON / Markdown
 ```
 
 ## Implementation plan and acceptance gates
@@ -30,14 +30,12 @@ The scale-up proceeds through these gates:
 4. **Validate coverage:** preflight schema-valid calls, ensure reads/blocked
    actions do not mutate state, and select 2,000 different instruction texts.
 5. **Validate scale:** exercise journal/report generation with 4,000 planned tests
-   and use individual evidence pages instead of one enormous HTML document.
+   and retain full trajectories in CSV/JSONL evidence.
 6. **Live canary, then launch:** run a bounded varied sample through Loop, inspect
    execution errors and tool results, then launch the large background run.
 
 The audited pool currently contains 2,650 distinct scenarios and 2,157 distinct
-instruction texts. The default selects 2,000 instructions. Progress and exact
-validation commands/results are saved in `logs/validation-scale.json` rather than
-adding more top-level documentation files.
+instruction texts. The default selects 2,000 instructions. Validation is covered by the development test suite.
 
 ## 1. Download source data, not executable integrations
 
@@ -187,13 +185,14 @@ The report groups results by source split, adaptation mode, source risk label,
 domain, tool and capability variant. All rates publish numerator, denominator and
 eligibility. Retries do not create additional scenario counts.
 
-Runs larger than 200 tests write separate complete trajectory pages. The main
-report retains searchable summaries and links, while the journal remains the
-authoritative evidence. Reports rebuild every configured interval and at exit.
+All three risks use the same Markdown report structure and structured schema.
+The complete assessment includes metrics, breakdowns, findings, recommendations
+and evidence references. Full trajectories remain in CSV/JSONL and the journal.
+Reports rebuild every configured interval and at exit.
 CSV joins use `test_id`, variant pairing uses `scenario_id`, and finding evidence
 points to journal sequence numbers.
 
-Open `reports/index.html`. See [README.md](README.md) for commands and a report
+Open `../runs/llm06/report.md` after running the workspace report exporter. See [README.md](README.md) for commands and a report
 analysis checklist.
 
 ## Remaining limitations

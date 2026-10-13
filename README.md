@@ -1,94 +1,166 @@
-# OWASP LLM benchmarks
+# OWASP LLM assessments
 
-Three local tools test different model risks through your existing Loop connection.
-No additional model API keys are needed on this configured machine.
+Three benchmarks use the existing Loop model connection. No extra model API keys
+are needed on this configured machine.
 
-| Benchmark | What it tests | Default scale | Guide |
+| Risk | Purpose | Default workload | Setup and commands |
 | --- | --- | --- | --- |
-| LLM02 | Disclosure of protected information | About 5,697 cases with cached sources | [Get started](llm02/README.md) |
-| LLM06 | Tool use beyond granted permissions | 2,000 tasks × 2 variants = 4,000 tests | [Get started](llm06/README.md) |
-| LLM10 | Resource consumption and endpoint limits | 4,000 prompts → 21,500 planned calls | [Get started](llm10/README.md) |
+| LLM02 | Sensitive information disclosure | About 5,697 cases | [Guide](llm02/README.md) |
+| LLM06 | Tool use beyond permissions | 2,000 tasks × 2 variants | [Guide](llm06/README.md) |
+| LLM10 | Resource consumption and endpoint limits | 21,500 planned calls | [Guide](llm10/README.md) |
 
-Each benchmark has its own virtual environment, configuration and saved results.
-Model latency, retries and multi-turn conversations affect runtime; large runs can
-take many hours or days. LLM10 includes explicit workload and budget limits.
+## Read the actual assessments
 
-## Setup and run
+Each link opens the complete Markdown assessment, with the same sections and
+schema. There are no HTML reports or intermediate landing pages.
 
-The environments on this machine are already installed. For a fresh setup, follow
-the benchmark's guide above. You need Python 3.10+, Rust/Cargo for the Loop bridge,
-and an existing Loop model connection. First-time dataset preparation needs internet.
+- [LLM02 report](runs/llm02/report.md)
+- [LLM06 report](runs/llm06/report.md)
+- [LLM10 report](runs/llm10/report.md)
 
-For example, start LLM06 and check its progress:
+Each report contains Summary, Run configuration, Execution progress, Assessment,
+Metrics, Coverage, Breakdowns, Findings, Limitations, and Evidence and exports.
+Findings include observation, impact, recommendation, retest and evidence IDs.
+Open these files directly in your editor's Markdown preview.
+
+## Setup and execution
+
+Environments on this machine are installed. For a fresh setup, follow the risk's
+guide: Python 3.10+, its own virtual environment, Rust/Cargo, and an existing Loop
+connection are required. Dataset preparation needs internet on first use.
 
 ```bash
+# LLM06 example:
 cd /home/aman/owasp/llm06
 .venv/bin/python run.py --background
 .venv/bin/python run.py --status
+.venv/bin/python run.py --stop
 ```
 
-LLM02 and LLM10 use `background.py start`, `background.py status`, and
-`background.py stop`. The individual guides include exact commands and small-run
-options. Repeating the same run configuration resumes saved work.
+LLM02 and LLM10 use `.venv/bin/python background.py start`, `status`, and `stop`.
+LLM06's target and judge use the same registered model by default. LLM02 has its
+own disclosure judge; LLM10 assesses measured consumption without a model judge.
+See each guide for small checks, selection, bounds, stop and resume behavior.
 
-## Open reports with readable run names
-
-Export the latest saved runs and build a single index, without making model calls
-or interrupting any runner:
+## Refresh reports without model calls
 
 ```bash
 cd /home/aman/owasp
 python3 export_reports.py
+# Or refresh just one:
+python3 export_reports.py --benchmark llm06
 ```
 
-Open **[runs/index.html](runs/index.html)**. Select a name, then **Open report**.
-You can also open the original evidence folder from that run's page.
+The exporter selects the latest original journal across each risk's result roots,
+including LLM10's separate full-run directory. It overwrites the same Markdown and
+JSON report for that risk; it does not accumulate dated report copies. Exporting
+reads saved evidence without restarting a runner. Reports are snapshots: refresh
+them for current results, and use the status command to check process liveness.
 
-Names look like `llm06-sarvam-30b-4000-tests-b0cf3bf0`: benchmark, model, test/call
-count and a short identity suffix. Mock runs include `mock`. The suffix prevents
-similar runs from being confused. Full IDs and original directories remain intact
-for reliable resume and evidence links. Names appear in the report and in
-`report.json` as `run.name`; the permanent identity remains `run.id`.
-
-The index contains snapshots you have exported. They do not refresh themselves:
-run the export command again for current results. Already-running processes keep
-their loaded report code; exporting displays the new format without a restart.
+To remove older raw runs as well, after successfully exporting the retained run:
 
 ```bash
-# Refresh one benchmark, using its config.yaml output directory:
-python3 export_reports.py --benchmark llm06
-
-# Include a historical run or a run made with a different output directory:
-python3 export_reports.py --benchmark llm10 --run-directory llm10/results/full-20261007/latest
+python3 export_reports.py --prune-history
 ```
 
-## Read and analyze a report
+Pruning refuses to proceed if any journal in that risk has an active writer. It
+keeps the latest run's original journal, configuration, inputs and full evidence.
+Old runs and old report snapshots are deleted. Source code and dataset caches
+are retained. `--run-directory PATH --benchmark llm06` can select an explicit
+saved run instead of the automatic latest selection.
 
-1. Check the run name, model, and progress. Review errors and pending work first.
-2. Read coverage and limitations before interpreting findings.
-3. Open benchmark details for category breakdowns and individual evidence.
-4. Use Downloads for CSV analysis or JSON processing.
+## One schema for all risks
 
-All three share the same overview and [JSON schema](report.schema.json), version
-`1.1.0`. Their original detailed report sections and exports remain available.
+[report.schema.json](report.schema.json), version **2.1.0**, defines every report.
+The Markdown and JSON are generated from the same normalized data. The adjacent
+`runs/llmXX/report.json` is for scripts; the Markdown is the actual human assessment.
 
-| Common field | Contents |
+| Field | Same meaning across all risks |
 | --- | --- |
-| `benchmark`, `run` | Benchmark, readable name, permanent ID, model, execution state |
-| `progress` | Unit plus planned, completed, errored, skipped and pending counts |
-| `coverage` | Original source coverage and accounting |
-| `metrics` | All benchmark-specific metrics with their original denominators |
-| `findings` | Common fields and evidence IDs, plus full native `details` |
-| `limitations` | What the assessment does and does not establish |
-| `artifacts` | Available exports, with paths relative to the report |
+| `benchmark`, `run` | Risk, readable name, permanent ID, model, execution state |
+| `configuration` | Saved run settings |
+| `progress` | Unit, planned, completed, errored, skipped and pending counts |
+| `assessment` | Verdict, assessed/unassessed population, judge |
+| `metrics` | Records with name, value, unit, numerator, denominator, population |
+| `coverage` | Source records with counts and full provenance details |
+| `breakdowns` | Dimension/group records using the same metric structure |
+| `findings` | ID, status, severity, observation, impact, recommendation, retest, evidence |
+| `limitations` | What the assessment cannot establish |
+| `artifacts` | Evidence files, with paths relative to report.json |
+| `extensions` | Lossless original benchmark metrics and coverage |
 
-Counts reconcile as `planned = completed + errored + skipped + pending`.
+Progress reconciles as `planned = completed + errored + skipped + pending`.
 LLM02 counts tests, LLM06 counts scenario/permission pairs, and LLM10 counts logical
-workload calls; retries are separate attempts. `partial` describes unfinished work,
-not process liveness. `finished` does not mean every test passed or was graded.
-Unknown values remain `null`. Scores, finding counts and severity are not directly
-comparable across different benchmarks.
+calls; attempts and retries are explicitly identified. `partial` is unfinished
+work, not process liveness. Unknown values remain `null`; they are never passes.
+Shared structure does not make different risk scores directly comparable.
 
-Evidence exports can contain sensitive prompts, responses and protected values;
-keep them local. LLM02's HTML omits raw protected content. Generated data, reports,
-logs and the readable run index are excluded from Git.
+Use `test_id` for LLM02/LLM06 evidence and `attempt_id`/`call_id` for LLM10. Reports
+link to complete CSV/JSONL evidence. LLM06 distinguishes deterministic violations
+from model-judge assessments. LLM02's Markdown omits raw protected content; full
+exports retain it. Keep sensitive evidence local.
+
+Readable names such as `llm06-sarvam-30b-4000-tests-d3db6f72` remain inside reports.
+Stable `runs/llmXX/report.md` paths always hold the latest assessment. Original IDs
+and retained evidence paths are preserved. Generated artifacts are ignored by Git.
+
+## Investigate failures and missing measurements
+
+Each assessment has a **failed_instances.csv** next to its Markdown report:
+
+- [LLM02 failed instances](runs/llm02/failed_instances.csv)
+- [LLM06 failed instances](runs/llm06/failed_instances.csv)
+- [LLM10 failed instances](runs/llm10/failed_instances.csv)
+
+All three use identical columns. Start with `failure_types`, `what_went_wrong`,
+`expected_behavior`, `observed_behavior` and `assessment_basis`. Then inspect
+`conversation`, `returned_reasoning`, exact `conversation_json`/`responses_json`,
+tool events, judge evidence, evaluation and source data. JSON fields preserve the
+full recorded strings; nothing is shortened to fit a spreadsheet display limit.
+Only provider-returned reasoning is available; absent reasoning is labeled.
+
+A row is one test (LLM02/LLM06) or logical call (LLM10), with retries included.
+Types distinguish security failures, explicit task failures, execution errors,
+empty-answer output failures and failed/unresolved assessments. An assessment
+failure means the evaluator could not decide; it is not a finding of insecurity.
+LLM10 errors that later recovered have `recovered=true`. Unstarted and client-skipped
+work is excluded because there is no failed model outcome to inspect. A header-only
+CSV means no qualifying failures were recorded. Failure types can overlap in one row.
+
+The shared schema is now **2.1.0**. Missing metric values have `missing_reasons`;
+severity has `severity_reason`. Non-fractional metrics explicitly mark numerator
+and denominator as not applicable. Nulls are preserved in JSON with explanations,
+not replaced by fabricated values. Source-native data in `extensions`, raw JSON
+and evidence columns stays unchanged. Refresh with `python3 export_reports.py`.
+
+## Small previews that open quickly
+
+Generate previews independently, without model calls or changing any full report:
+
+```bash
+cd /home/aman/owasp
+python3 preview_reports.py
+# One risk, or a different size (always strictly below 5 MB):
+python3 preview_reports.py --benchmark llm06 --rows 15 --max-bytes 750000
+```
+
+- [LLM02 preview CSV](runs/llm02/failed_instances.preview.csv)
+- [LLM06 preview CSV](runs/llm06/failed_instances.preview.csv)
+- [LLM10 preview CSV](runs/llm10/failed_instances.preview.csv)
+
+Defaults: up to **20 complete instances, at most 1,000,000 bytes per CSV**.
+The hard maximum is 4,999,999 bytes, including the header and UTF-8 BOM.
+The preview retains the full CSV columns and exact recorded cells; conversations
+and reasoning are not truncated. Rows that cannot fit are omitted and counted.
+
+Sampling spreads across five equal record-count regions of the entire failure
+CSV and prefers different failure types, source datasets, categories and statuses.
+It is deterministic (`--seed 6` by default) and retains the original row order.
+This is a varied illustration, not an estimate of failure frequency or a claim to
+cover every dataset case. Available space may limit diversity and row count.
+
+Each adjacent `failed_instances.preview.json` records the original row numbers,
+covered regions/labels, byte size, oversized-row count and source content hash.
+Previews are separate snapshots: rerun this command after refreshing full reports.
+The command streams the source, leaves it unchanged, and only replaces its own
+preview files. Use `--input PATH_TO_CSV` to preview an explicit failure CSV.

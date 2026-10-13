@@ -13,3 +13,7 @@ native/loop-bridge/target/
 
 # Generated readable run index and report shortcuts.
 /runs/
+
+# Alternate benchmark output roots are generated, never source.
+llm*/results-*/
+llm*/reports-*/

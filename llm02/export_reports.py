@@ -37,9 +37,8 @@ def export_snapshot(directory):
             last_seq = event['seq']
             if event['kind'] == 'result':
                 rows[event['test_id']] = event['result']
-    root = directory / 'csv-snapshots'
-    root.mkdir(mode=0o700, exist_ok=True)
-    output = Path(tempfile.mkdtemp(prefix=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ-'), dir=root))
+    output = directory / 'analysis'
+    output.mkdir(mode=0o700, exist_ok=True)
     write_reports(output, sorted(rows.values(), key=lambda r: r['test_id']), cases, coverage, cfg, directory.name)
     atomic_text(output / 'snapshot.json', json.dumps({'source_run': str(directory), 'last_seq': last_seq,
                 'results': len(rows), 'created_at_utc': datetime.now(timezone.utc).isoformat(),

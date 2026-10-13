@@ -59,7 +59,7 @@ def test_one_command_resume_and_reproducible_reports(tmp_path):
                        cwd=ROOT, capture_output=True, text=True, timeout=30)
     assert p.returncode == 0, p.stderr
     assert (out / 'metrics.json').read_bytes() == metrics_before
-    report = (out / 'report.html').read_text()
+    report = (out / 'report.md').read_text()
     assert 'SYNTHETIC MOCK DEMONSTRATION' in report
     for case in json.loads((out / 'cases.json').read_text()):
         for secret in case['protected_values']:
@@ -119,7 +119,7 @@ def test_process_kill_and_resume_with_http_endpoint(tmp_path, stop_signal):
         os.kill(proc.pid, stop_signal)
         proc.wait(timeout=10)
         if stop_signal == signal.SIGINT:
-            assert (journal.parent / 'report.html').exists()
+            assert (journal.parent / 'report.md').exists()
             assert json.loads((journal.parent / 'state.json').read_text())['status'] == 'interrupted'
         before = [json.loads(x) for x in journal.read_text().splitlines() if x.endswith('}')]
         completed_keys = {e['request_key'] for e in before if e['kind'] == 'response'}

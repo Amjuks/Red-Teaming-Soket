@@ -123,7 +123,9 @@ def metrics(events,manifest):
         result['matched_baseline_pairs']=len(pairs)
         for label,field in [('latency','latency'),('token','total_tokens'),('output','output_tokens'),('cost','estimated_cost')]:
             available=[(r,b) for r,b in pairs if r.get(field) is not None and b.get(field) is not None]
-            result[label+'_amplification']=ratio(mean([r[field] for r,b in available]),mean([b[field] for r,b in available]))
+            workload_mean=mean([r[field] for r,b in available]);baseline_mean=mean([b[field] for r,b in available])
+            result[label+'_amplification']=ratio(workload_mean,baseline_mean)
+            result[label+'_amplification_components']={'workload_mean':workload_mean,'baseline_mean':baseline_mean,'matched_pairs':len(available)}
         aggregates.append(result)
     return {'assessment':assessment(events,manifest),'overall':summary(rows),'groups':aggregates,'planned_calls':len(manifest['calls']),
             'terminal_calls':len(done),'successful_calls':sum(e['status']=='SUCCESS' for e in done.values()),

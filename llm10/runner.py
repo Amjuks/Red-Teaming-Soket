@@ -231,13 +231,13 @@ async def execute(cfg,manifest,coverage,identity,transport=client.complete):
     with Journal(directory) as j:
         write_json(directory/'config.json',cfg); write_json(directory/'manifest.json',manifest)
         write_json(directory/'coverage.json',coverage); write_json(directory/'identity.json',identity)
-        write_json(Path(cfg['paths']['results'])/'latest.json',{'run_id':run_id,'directory':str(directory),'report':str(reports/'report.html')})
+        write_json(Path(cfg['paths']['results'])/'latest.json',{'run_id':run_id,'directory':str(directory),'report':str(reports/'report.md')})
         runner=Executor(cfg,manifest,j,run_id,transport)
         runner.publish=lambda:write_reports(directory,reports,j.events,manifest,coverage,cfg,run_id)
         runner.last_report=time.monotonic()
         loop=asyncio.get_running_loop()
         for sig in (signal.SIGINT,signal.SIGTERM): loop.add_signal_handler(sig,runner.stop.set)
-        print(f'Run {run_id}\nResults: {directory}\nReport: {reports / "report.html"}',flush=True)
+        print(f'Run {run_id}\nResults: {directory}\nReport: {reports / "report.md"}',flush=True)
         try:
             runner.publish()
             publish_latest(Path(cfg['paths']['results']),directory)

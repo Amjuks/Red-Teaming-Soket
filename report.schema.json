@@ -12,11 +12,15 @@
     "metrics",
     "findings",
     "limitations",
-    "artifacts"
+    "artifacts",
+    "breakdowns",
+    "assessment",
+    "configuration",
+    "extensions"
   ],
   "properties": {
     "schema_version": {
-      "const": "1.1.0"
+      "const": "2.1.0"
     },
     "benchmark": {
       "type": "object",
@@ -107,11 +111,134 @@
       "additionalProperties": false
     },
     "coverage": {
-      "type": "object"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source",
+          "counts",
+          "details"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "value",
+                "unit",
+                "numerator",
+                "denominator",
+                "population",
+                "missing_reasons",
+                "notes"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "numerator": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "denominator": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "population": {
+                  "type": "string"
+                },
+                "missing_reasons": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "notes": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "type": "object"
+          }
+        }
+      }
     },
     "metrics": {
-      "type": "object",
-      "description": "Complete native benchmark metrics, preserving original denominators and unknown values."
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "value",
+          "unit",
+          "numerator",
+          "denominator",
+          "population",
+          "missing_reasons",
+          "notes"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "numerator": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "denominator": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "population": {
+            "type": "string"
+          },
+          "missing_reasons": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
     },
     "findings": {
       "type": "array",
@@ -123,7 +250,12 @@
           "status",
           "severity",
           "evidence",
-          "details"
+          "details",
+          "observation",
+          "impact",
+          "recommendation",
+          "retest",
+          "severity_reason"
         ],
         "properties": {
           "id": {
@@ -149,6 +281,21 @@
           },
           "details": {
             "type": "object"
+          },
+          "observation": {
+            "type": "string"
+          },
+          "impact": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "retest": {
+            "type": "string"
+          },
+          "severity_reason": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -186,6 +333,147 @@
         },
         "additionalProperties": false
       }
+    },
+    "breakdowns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "dimension",
+          "group",
+          "metrics"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "dimension": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "value",
+                "unit",
+                "numerator",
+                "denominator",
+                "population",
+                "missing_reasons",
+                "notes"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "numerator": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "denominator": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "population": {
+                  "type": "string"
+                },
+                "missing_reasons": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "notes": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "assessed",
+        "unassessed",
+        "population",
+        "judge",
+        "missing_reasons"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string"
+        },
+        "assessed": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unassessed": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "population": {
+          "type": "string"
+        },
+        "judge": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "missing_reasons": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "configuration": {
+      "type": "object"
+    },
+    "extensions": {
+      "type": "object",
+      "required": [
+        "metrics",
+        "coverage"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "metrics": {
+          "type": "object"
+        },
+        "coverage": {
+          "type": "object"
+        }
+      }
+    },
+    "failure_export": {
+      "type": "object"
     }
   }
 }

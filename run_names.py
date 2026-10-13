@@ -1,6 +1,4 @@
 """Readable labels and a local run index, separate from immutable run identity."""
-import html
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -18,38 +16,48 @@ def run_name(benchmark, model, run_id, planned, unit):
 
 
 def register(root, report, source):
-    """Create real landing pages: symlinked HTML would break relative downloads."""
+    """Publish the complete latest assessment under a stable risk directory."""
+    from reporting import overview
     root, report, source = Path(root).resolve(), Path(report).resolve(), Path(source).resolve()
     doc = json.loads(report.with_name('report.json').read_text())
-    name = doc['run']['name']
-    # The catalog is derived only from validated names created by our formatter.
-    expected = run_name(doc['benchmark']['id'], doc['run']['model'], doc['run']['id'],
-                        doc['progress']['planned'], doc['progress']['unit'])
-    if name != expected:
+    benchmark = doc['benchmark']['id']
+    if benchmark not in ('llm02', 'llm06', 'llm10'):
+        raise ValueError('Unknown benchmark')
+    expected = run_name(benchmark, doc['run']['model'], doc['run']['id'], doc['progress']['planned'], doc['progress']['unit'])
+    if doc['run']['name'] != expected:
         raise ValueError('Invalid readable run name')
-    directory = root/name
-    if (directory/'run.json').exists():
-        previous = json.loads((directory/'run.json').read_text())
-        if previous['run_id'] != doc['run']['id']:
-            # Preserve both runs even if their short identity prefixes collide.
-            directory = root/(name + '-' + hashlib.sha256(doc['run']['id'].encode()).hexdigest()[:12])
+    directory = root/benchmark
     directory.mkdir(parents=True, exist_ok=True)
-    entry = dict(name=directory.name, run_id=doc['run']['id'], benchmark=doc['benchmark']['id'],
-                 report=str(report), source_directory=str(source), progress=doc['progress'])
-    atomic_text(directory/'run.json', json.dumps(entry, indent=2)+'\n')
-    esc = lambda value: html.escape(str(value), quote=True)
-    report_link = esc(os.path.relpath(report, directory))
-    source_link = esc(os.path.relpath(source, directory)) + '/'
-    atomic_text(directory/'index.html', f'<!doctype html><html lang="en"><meta charset="utf-8"><title>{esc(directory.name)}</title>'
-                f'<h1>{esc(directory.name)}</h1><p><a href="{report_link}">Open report</a></p>'
-                f'<p><a href="{source_link}">Original run evidence</a></p><p>Run ID: {esc(doc["run"]["id"])}</p>'
-                '<p>This is a saved report snapshot. Run export_reports.py again to refresh.</p></html>')
-    entries = [json.loads(path.read_text()) for path in sorted(root.glob('*/run.json'))]
-    rows = ''.join(f'<tr><td><a href="{esc(e["name"])}/index.html">{esc(e["name"])}</a></td>'
-                   f'<td>{e["progress"]["completed"]}</td><td>{e["progress"]["errored"]}</td>'
-                   f'<td>{e["progress"]["pending"]}</td></tr>' for e in entries)
-    atomic_text(root/'index.html', '<!doctype html><html lang="en"><meta charset="utf-8"><title>OWASP runs</title>'
-                '<style>body{font:16px/1.6 system-ui;margin:32px}td,th{text-align:left;padding:10px}</style>'
-                '<h1>OWASP benchmark runs</h1><p>Saved snapshots; refresh with python3 export_reports.py.</p>'
-                '<table><tr><th>Run</th><th>Completed</th><th>Errored</th><th>Pending</th></tr>'+rows+'</table></html>')
-    return directory/'index.html'
+    for artifact in doc['artifacts']:
+        artifact['path'] = os.path.relpath((report.parent/artifact['path']).resolve(), directory)
+    # Snapshots expose all original artifacts without copying or modifying journals.
+    for name in ('events.jsonl', 'config.json', 'cases.json', 'manifest.json', 'coverage.json'):
+        path=source/name
+        if path.is_file() and not any(a['name']==name for a in doc['artifacts']):
+            doc['artifacts'].append(dict(name=name,path=os.path.relpath(path,directory),media_type='application/x-ndjson' if name.endswith('.jsonl') else 'application/json',sensitivity='private'))
+    # Keep the requested failure CSV next to the actual risk report.
+    import shutil
+    for artifact in doc['artifacts']:
+        if artifact['name']=='failed_instances.csv':
+            source_csv=(directory/artifact['path']).resolve()
+            if source_csv != directory/'failed_instances.csv':
+                import tempfile
+                fd,temporary=tempfile.mkstemp(prefix='.failures-',dir=directory)
+                os.close(fd)
+                try:
+                    shutil.copyfile(source_csv,temporary)
+                    os.replace(temporary,directory/'failed_instances.csv')
+                finally:
+                    if os.path.exists(temporary):os.unlink(temporary)
+            artifact['path']='failed_instances.csv'
+    atomic_text(directory/'report.json',json.dumps(doc,indent=2,ensure_ascii=False)+'\n')
+    atomic_text(directory/'report.md',overview(doc))
+    atomic_text(directory/'run.json', json.dumps(dict(name=expected,run_id=doc['run']['id'],benchmark=benchmark,
+                source_directory=str(source),report=str(directory/'report.md'),progress=doc['progress']),indent=2)+'\n')
+    from reporting import table
+    entries=[json.loads(p.read_text()) for p in sorted(root.glob('llm*/run.json'))]
+    rows=[[e['benchmark'],e['name'],e['progress']['completed'],e['progress']['errored'],e['progress']['skipped'],e['progress']['pending']] for e in entries]
+    atomic_text(root/'README.md','# Latest benchmark assessments\n\n'+table(['Risk','Run','Completed','Errored','Skipped','Pending'],rows)+
+                '\nEach risk has a complete report.md and matching report.json, with the same schema. Refresh with `python3 export_reports.py`.\n\n'+
+                '\n'.join(f"- [{e['benchmark'].upper()} assessment]({e['benchmark']}/report.md)" for e in entries)+'\n')
+    return directory/'report.md'

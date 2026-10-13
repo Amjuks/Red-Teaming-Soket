@@ -47,7 +47,7 @@ def test_all_families_replay_and_exact_csv(tmp_path):
     latest=json.loads((Path(cfg['paths']['results'])/'latest.json').read_text())
     out=Path(latest['directory']); before=(out/'events.jsonl').read_bytes()
     assert (Path(cfg['paths']['results'])/'latest').resolve()==out
-    assert (Path(cfg['paths']['reports'])/'latest/report.html').is_file()
+    assert (Path(cfg['paths']['reports'])/'latest/report.md').is_file()
     assert asyncio.run(execute(cfg,m,{}, {'transport':'test'},transport))==0
     assert len(sent)==count and (out/'events.jsonl').read_bytes()==before
     with (out/'requests.csv').open(encoding='utf-8-sig',newline='') as f: rows=list(csv.DictReader(f))

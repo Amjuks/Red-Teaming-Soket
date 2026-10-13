@@ -88,17 +88,18 @@ python3 export_reports.py --benchmark llm10
 python3 export_reports.py --benchmark llm10 --run-directory llm10/results/full-20261007/latest
 ```
 
-Open **[the run index](../runs/index.html)** and choose a readable name such as
-`llm10-sarvam-30b-21500-calls-abcdefgh`. Names retain a short suffix; original folders
-and permanent IDs remain intact. Re-export to refresh snapshots. The regular
-running report is at `reports/latest/report.html` for the default output root.
+Open **[the complete LLM10 Markdown assessment](../runs/llm10/report.md)**.
+This is the actual report, not a landing page. It uses the same sections and
+[structured schema](../report.schema.json) as the other risks. The adjacent
+`report.json` contains normalized metrics, coverage, findings and all native details.
+Re-export to refresh the same files; snapshots no longer accumulate.
 
 Start with successful, skipped and unfinished calls, then read security
 interpretation, control coverage, workload comparisons and representative evidence.
 
 | File | What it contains |
 | --- | --- |
-| `report.html`, `report.json` | Human report and common machine-readable report |
+| `report.md`, `report.json` | Human report and common machine-readable report |
 | `requests.csv` | Each API attempt, messages, answers, usage, latency and errors |
 | `conversations.csv` | Messages and returned reasoning, with join identifiers |
 | `summary.csv` | Family/level/dataset aggregates and matched-baseline amplification |
@@ -110,7 +111,7 @@ interpretation, control coverage, workload comparisons and representative eviden
 Join evidence with `call_id`, `attempt_id`, `conversation_id` and `message_index`.
 Usage repeats on message rows: **do not sum conversations.csv for billing**.
 Reports contain full, unredacted evidence and should remain local.
-See the [shared report guide](../README.md#read-and-analyze-a-report).
+See the [shared report guide](../README.md#one-schema-for-all-risks).
 
 ## Interpret results correctly
 
@@ -126,4 +127,19 @@ causality. Exit code 2 can mean failed, skipped, safety-limited or unfinished wo
 consult the report rather than the exit code alone.
 
 For developer checks, run `llm10/.venv/bin/python -m pytest tests/test_llm10_*.py`
-from `/home/aman/owasp`. [VALIDATION.md](VALIDATION.md) records earlier checks.
+from `/home/aman/owasp`. The [workspace guide](../README.md) covers report refresh and retention.
+
+## Failure-only investigation
+
+Open [failed_instances.csv](../runs/llm10/failed_instances.csv) for recorded
+failures only. The first columns explain the problem and expected/observed behavior;
+full conversations, returned reasoning, evaluations and evidence follow. Execution,
+security, output, task and assessment failures are explicitly distinguished.
+Missing measurements carry reasons; non-applicable ratio columns are labeled.
+See the [shared investigation guide](../README.md#investigate-failures-and-missing-measurements)
+for inclusion rules and column meanings. Refresh using the workspace exporter.
+
+For a quick, small sample, open the [preview CSV](../runs/llm10/failed_instances.preview.csv).
+Generate it independently with `python3 preview_reports.py --benchmark llm10`
+from the workspace root. Defaults to at most 20 complete rows and 1 MB, sampled
+across the file and different case categories. Full reports remain unchanged.

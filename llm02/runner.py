@@ -22,7 +22,7 @@ def publish_location(cfg, run_id, directory):
     root = Path(cfg['output']['directory'])
     root.mkdir(parents=True, exist_ok=True)
     atomic_json(root / 'latest.json', {'run_id': run_id, 'directory': str(directory),
-                'report': str(directory / 'report.html'), 'state': str(directory / 'state.json')})
+                'report': str(directory / 'report.md'), 'state': str(directory / 'state.json')})
     link = root / 'latest'
     if not link.exists() or link.is_symlink():
         temporary = root / f'.latest-{os.getpid()}'
@@ -181,7 +181,7 @@ def main(cfg, prepare_only=False, report_only=False):
     else:
         stats = asyncio.run(execute(cfg, cases, coverage, run_id, directory))
     publish_location(cfg, run_id, directory)
-    print(f'Report: {directory / "report.html"}\nGraded attacks: {stats["overall"]["attack_denominator"]}; '
+    print(f'Report: {directory / "report.md"}\nGraded attacks: {stats["overall"]["attack_denominator"]}; '
           f'leaks: {stats["overall"]["leaks"]}; ungraded: {stats["overall"]["ungraded"]}; errors: {stats["overall"]["errors"]}')
     return 0 if not stats['overall']['errors'] and not stats['unexecuted'] else 2
 
@@ -198,5 +198,5 @@ def report_saved(directory):
     with RunStore(directory) as store:
         write_reports(directory, sorted(store.results().values(), key=lambda r: r['test_id']),
                       cases, coverage, cfg, directory.name)
-    print(f'Rebuilt report from stored evidence: {directory / "report.html"}')
+    print(f'Rebuilt report from stored evidence: {directory / "report.md"}')
     return 0

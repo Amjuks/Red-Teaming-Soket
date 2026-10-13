@@ -1,6 +1,5 @@
-"""Private full-evidence CSV/JSONL and escaped HTML from the durable journal."""
+"""Private full-evidence CSV/JSONL and Markdown assessments from the durable journal."""
 import csv
-import html
 import io
 import json
 import os
@@ -70,37 +69,10 @@ def write_reports(directory,reports,events,manifest,coverage,cfg,run_id):
     csv_file(directory/'summary.csv',data['groups'],group_fields)
     decisions=[e for e in events if e['kind']=='call_finished']
     csv_file(directory/'call_status.csv',decisions,['call_id','family','level','status','reason'])
-    e=lambda x:html.escape(str(x))
-    cards=''.join(f'<p><b>{e(k)}:</b> {e(data[k])}</p>' for k in ('planned_calls','terminal_calls','successful_calls','skipped_calls','unfinished_calls'))
-    summaries=''.join('<tr>'+''.join('<td>'+e(r.get(k,''))+'</td>' for k in group_fields)+'</tr>' for r in data['groups'])
-    # Representative per family + errors and 429s, not a claim to contain every row.
-    representatives={}
-    for r in rows:
-        representatives.setdefault((r['test_family'],r['status'],r.get('http_status')),r)
-    evidence=''.join('<details><summary>'+e(f'{r["test_family"]} / {r["status"]} / {r["attempt_id"]}')+'</summary><pre>'+e(json.dumps(r,ensure_ascii=False,indent=2))+'</pre></details>' for r in representatives.values())
-    links=' '.join(f'<a href="{e(os.path.relpath(directory/name,reports))}">{name}</a>' for name in ['findings.csv','control_assessment.csv','requests.csv','conversations.csv','summary.csv','call_status.csv','results.jsonl','metrics.json'])
-    findings_html=''.join('<section><h3>'+e(f['finding_id']+' — '+f['status'])+'</h3>'+''.join('<p><b>'+e(label)+':</b> '+e(f[key])+'</p>' for label,key in [('Observed','observation'),('Possible impact','possible_impact'),('Action','recommended_action'),('Retest','retest'),('Evidence attempt IDs','evidence_attempt_ids')])+'</section>' for f in analysis['findings'])
-    page=f'''<!doctype html><meta charset="utf-8"><title>LLM10 {e(run_id)}</title>
-<style>body{{font:15px/1.5 system-ui;margin:30px}}pre{{white-space:pre-wrap;overflow-wrap:anywhere}}table{{border-collapse:collapse}}td,th{{border:1px solid #ccc;padding:6px}}.scroll{{overflow:auto}}</style>
-<h1>OWASP LLM10:2025 — Unbounded Consumption</h1><p>{e(cfg['model']['mode'].upper())} · {e(cfg['model']['model'])} · {e(run_id)}</p>
-<p>Private, unredacted benchmark evidence. Keep these files local. This report measures the tested range only, never unlimited capacity.</p>
-{cards}<p>{links}</p><h2>Security interpretation</h2><p>{e(analysis['verdict'])}</p>
-<p>Inference requires a repeatable workload → measured consumption/degradation → violation of a declared server policy or service objective. A large token count alone is not a vulnerability. Findings below distinguish observations from unproven causes; no OWASP severity score is invented.</p>
-{findings_html}<h3>Assessment limitations</h3><ul>{''.join('<li>'+e(x)+'</li>' for x in analysis['limitations'])}</ul>
-<p>See control_assessment.csv for successful, skipped and unfinished coverage per family. Evidence IDs join to requests.csv and conversations.csv.</p>
-<h2>Overall consumption and latency</h2><pre>{e(json.dumps(data['overall'],indent=2))}</pre>
-<h2>Methodology and caveats</h2><pre>{e(json.dumps(data['methodology'],indent=2))}</pre>
-<p>TTFT is unavailable through the current Loop completion API. Final answers and returned reasoning are separate. Missing usage is not zero. Client safety skips do not prove endpoint protection. For input/context, a 400 alone is inconclusive; 413 records a size rejection. Output length finish reason demonstrates the requested cap only.</p>
-<h2>Coverage</h2><pre>{e(json.dumps(coverage,indent=2))}</pre>
-<h2>Baseline and all workload families</h2><div class="scroll"><table><tr>{''.join('<th>'+e(k)+'</th>' for k in group_fields)}</tr>{summaries}</table></div>
-<h2>Client safety stops (not server controls)</h2><pre>{e(json.dumps(data['branch_stops'],indent=2))}</pre>
-<p>Observed high latency/token amplification warrants review against matched baselines. Failure-driven stops are inconclusive about endpoint limits unless explicit rejection evidence is present. Same endpoint activity from other users can confound latency/rate observations.</p>
-<h2>Representative full conversations and responses</h2>{evidence}
-<h2>Mitigations</h2><p>Enforce input/output/context caps server-side, per-tenant request/token/cost budgets, bounded concurrency, deadlines and backpressure. Monitor unusual repetition and expensive workloads; enforce admission control before generation and verify policies with authorized retests.</p>'''
+    from failure_reports import write_failures, llm10_rows
+    write_failures(directory, llm10_rows(run_id,events,manifest,analysis['findings']))
     from reporting import publish
-    common = publish('llm10', run_id, cfg['model'], data, coverage, directory, reports)
-    page = page.replace('<h1>', common + '<h1>', 1)
-    text_file(reports/'report.html',page)
+    publish('llm10', run_id, cfg['model'], data, coverage, directory, reports, configuration=cfg)
     return data
 
 
@@ -112,7 +84,7 @@ def rebuild(directory):
     coverage=json.loads((directory/'coverage.json').read_text())
     reports=Path(cfg['paths']['reports'])/directory.name
     with Journal(directory) as j:write_reports(directory,reports,j.events,manifest,coverage,cfg,directory.name)
-    print(f'Report: {reports / "report.html"}')
+    print(f'Report: {reports / "report.md"}')
 
 
 def snapshot(directory):
@@ -133,7 +105,7 @@ def snapshot(directory):
     output=directory/'analysis'
     reports=Path(cfg['paths']['reports'])/directory.name/'analysis'
     write_reports(output,reports,events,manifest,coverage,cfg,directory.name)
-    print(f'Analysis snapshot through journal sequence {len(events)-1}: {reports / "report.html"}')
+    print(f'Analysis snapshot through journal sequence {len(events)-1}: {reports / "report.md"}')
 
 
 if __name__=='__main__':
