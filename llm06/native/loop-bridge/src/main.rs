@@ -98,8 +98,8 @@ async fn run(input: Input) -> Result<Value, String> {
     let response = models.complete(&model, &context, options).await;
     let (status, retry_after) = observed.lock().unwrap().clone();
     if matches!(response.stop_reason, StopReason::Error | StopReason::Aborted) {
-        let retryable = status.map(|s| [408,409,429].contains(&s) || s >= 500).unwrap_or(true);
-        return Ok(json!({"ok":false,"error":status.map(|s| format!("Loop provider HTTP {s}")).unwrap_or_else(|| "Loop provider request failed".into()),
+        let retryable = retryable_stream_failure(status);
+        return Ok(json!({"ok":false,"error":status.map(|s| if (200..300).contains(&s) {format!("Loop stream failed after HTTP {s}")} else {format!("Loop provider HTTP {s}")}).unwrap_or_else(|| "Loop provider request failed".into()),
             "retryable":retryable,"status_code":status,"retry_after":retry_after,
             "detail":response.error_message}));
     }
@@ -119,4 +119,22 @@ async fn run(input: Input) -> Result<Value, String> {
     Ok(json!({"ok":true,"response":{"content":content,"reasoning":reasoning,
         "tool_calls":tool_calls,"usage":response.usage,"finish_reason":response.raw_stop_reason.as_deref().unwrap_or(match response.stop_reason { StopReason::Length => "length", StopReason::ToolUse => "tool_calls", _ => "stop" }),
         "raw":response,"transport":"loop-ai"}}))
+}
+
+fn retryable_stream_failure(status: Option<u16>) -> bool {
+    status.map(|s| (200..300).contains(&s) || [408,409,429].contains(&s) || s >= 500).unwrap_or(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::retryable_stream_failure;
+    #[test]
+    fn broken_successful_streams_are_retryable() {
+        assert!(retryable_stream_failure(Some(200)));
+        assert!(retryable_stream_failure(Some(429)));
+        assert!(retryable_stream_failure(Some(503)));
+        assert!(retryable_stream_failure(None));
+        assert!(!retryable_stream_failure(Some(401)));
+        assert!(!retryable_stream_failure(Some(400)));
+    }
 }

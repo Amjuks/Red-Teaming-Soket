@@ -41,11 +41,11 @@ cd /home/aman/owasp/llm06
 
 Status shows processed tests, errors, remaining work, the active test and exact
 log/report paths. Use `tail -f PATH_TO_BACKGROUND_LOG` to follow the printed log.
-Reports update every 100 processed tests and at exit by default.
+Reports update every 20 evaluated tests, at least once per minute while workers are active, and at exit.
 
 The job survives terminal closure. Stop requests a graceful shutdown; wait for
 status to confirm it has exited. Repeat the same command and filters to resume.
-Completed tests are skipped and target errors remain terminal. A pending judge
+Completed tests are skipped; transient transport failures and pending judge results receive up to three recovery passes. A pending judge
 can retry without rerunning the target. A foreground run uses
 `.venv/bin/python run.py`; stop it with Ctrl+C.
 
@@ -80,7 +80,7 @@ explicitly unlabeled where source risk labels are absent.
 Edit `config.yaml` or use `--config PATH` for model settings, sample size, variants,
 filters, retries, output tokens and report interval. `unique_tasks: true` avoids
 repeated instruction text. Sampling is seeded and balances domain/risk groups.
-Concurrency is one. Configuration or adapter changes can create a different run.
+Concurrency defaults to four workers (supported range: 1–8). Configuration or adapter changes can create a different run.
 
 ## Open reports
 
@@ -151,3 +151,59 @@ For a quick, small sample, open the [preview CSV](../runs/llm06/failed_instances
 Generate it independently with `python3 preview_reports.py --benchmark llm06`
 from the workspace root. Defaults to at most 20 complete rows and 1 MB, sampled
 across the file and different case categories. Full reports remain unchanged.
+
+## How tool and judge errors are handled
+
+Schema-invalid tool calls now return the exact validation path/message and expected
+schema to the model. The model can correct its next call within the eight-turn
+budget. Zero-parameter tools require `{}`. Original arguments remain in the
+journal; the harness does not silently change them or relax approval checks.
+Malformed JSON that the typed Loop bridge cannot replay remains an explicit error.
+
+The default target and judge budget is 4,096 generated tokens. An incomplete target
+answer receives bounded continuation feedback; a truncated tool request is never
+executed. Completed tool actions are restored from committed journal state and
+are not automatically replayed. Repeated bad calls still exhaust the configured
+turn/action budgets and remain failures.
+
+Judge input keeps the task, policy, initial state, tool definitions, actual messages,
+reasoning, tool outputs and rule findings while omitting duplicate request/wire
+payloads and repeated state snapshots. Judge retries receive the actual rejection
+reason. Incomplete, schema-invalid or contradictory verdicts remain unassessed;
+no parser repair fabricates a safe result.
+
+`pipeline_diagnostics.json`, linked from the assessment, distinguishes historical
+premature schema aborts, incomplete answers, judge errors and recovered schema
+feedback. The failure CSV explains historical pipeline defects in
+`what_went_wrong`. Rebuilding a saved report does not rerun tests or turn old
+errors into successes. To assess the repaired runner, start a fresh run with the
+updated configuration, then export its reports and previews.
+
+The default request timeout is 180 seconds, with two retries and three recovery
+passes for retryable transport failures and pending judgments. Broken SSE streams
+after HTTP 200 are retryable. A model that exhausts its interaction budget is sent
+for judging as an unfinished task, rather than being treated as a crashed pipeline.
+Nonretryable configuration/authentication errors remain blocking.
+The stable `runs/llm06/report.md` is refreshed at each normal reporting checkpoint.
+Implementation and bridge hashes are part of new run identities.
+
+## Parallel execution
+
+Four workers evaluate independent tests concurrently, including target and judge
+calls. A single synchronized journal commits events; each test retains its own
+simulated state. Status and progress.json list active tests and worker capacity.
+
+```bash
+# Start a new run with four workers:
+.venv/bin/python run.py --concurrency 4 --background
+
+# To change workers on the existing run, stop it and wait for it to exit:
+.venv/bin/python run.py --stop
+.venv/bin/python run.py --status
+# Resume the same run, sample IDs and completed results:
+.venv/bin/python run.py --resume-run latest --concurrency 4 --background
+```
+
+Changing worker count through --resume-run records new execution settings without
+rerunning completed tests. Graceful stop finishes the current requests and retains
+partial conversations for resume. Use fewer workers if endpoint throttling rises.

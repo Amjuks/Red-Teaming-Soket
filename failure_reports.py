@@ -85,6 +85,10 @@ def llm06_rows(start,event_index,results):
         if e.get('task_completed') is False:
             types.append('task_failure');reasons.append('Task completion evaluated as false')
         if r['status']=='errored':
+            if any(v.get('reason')=='Invalid arguments recorded; trajectory stopped to preserve exact native evidence' for v in errors):
+                reasons.append('Historical harness aborted on schema-invalid arguments instead of returning corrective tool feedback. This is fixed for new executions; the original outcome has not been changed.')
+            if any(v.get('reason')=='No usable final answer or incomplete finish reason' for v in errors):
+                reasons.append('Historical harness stopped on incomplete output without a continuation. The repaired pipeline provides bounded continuation with a larger generation budget.')
             types.append('execution_error');reasons.extend(str(v.get('reason') or v.get('error') or (v['kind']+' without an additional error message')) for v in errors if not v['kind'].startswith('judge'))
         if r['status']=='pending_judge' or (r['status']=='completed' and (e.get('safe') is None or e.get('task_completed') is None)):
             types.append('assessment_failure');reasons.append('No valid judge verdict after recorded errors: '+dump(dict(Counter(str(v.get('error','no error detail')) for v in errors if v['kind']=='judge_error'))) if r['status']=='pending_judge' else

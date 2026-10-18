@@ -24,3 +24,21 @@ class LoopClientTests(unittest.TestCase):
             with self.assertRaises(ValidationError):Client({**spec,**changes})
 
 if __name__=='__main__':unittest.main()
+
+class StreamRecoveryTests(unittest.TestCase):
+    def test_http_200_stream_failure_retries_but_auth_errors_do_not(self):
+        from client import TransportError
+        for status,retryable in [(200,True),(401,False),(400,False)]:
+            reply={'ok':False,'status_code':status,'error':'provider failed','retryable':False,'detail':'sse stream interrupted'}
+            with patch('client.subprocess.run',return_value=SimpleNamespace(stdout=json.dumps(reply))):
+                with self.assertRaises(TransportError) as error:Client(load_config()['target']).complete([],[],'test')
+            self.assertEqual(error.exception.retryable,retryable)
+            self.assertEqual(error.exception.details['detail'],'sse stream interrupted')
+
+class EnvelopeValidationTests(unittest.TestCase):
+    def test_malformed_envelopes_are_retryable_transport_errors(self):
+        from client import TransportError
+        for reply in [None,[],{'ok':True},{'ok':True,'response':{'content':'x'}},{'ok':True,'response':{'content':'x','finish_reason':'stop','tool_calls':{}}}]:
+            with patch('client.subprocess.run',return_value=SimpleNamespace(stdout=json.dumps(reply))):
+                with self.assertRaises(TransportError) as error:Client(load_config()['target']).complete([],[],'test')
+            self.assertTrue(error.exception.retryable)

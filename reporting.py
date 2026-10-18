@@ -86,7 +86,7 @@ def publish(benchmark, run_id, model, data, coverage, directory, report_director
             'Client skips are not server protection. Unknown usage and cost are not zero.']
         names = ['metrics.json', 'results.jsonl', 'requests.csv', 'conversations.csv', 'summary.csv',
                  'call_status.csv', 'control_assessment.csv', 'findings.csv', 'events.jsonl']
-    names += ['failed_instances.csv','failed_instances_summary.json']
+    names += ['failed_instances.csv','failed_instances_summary.json','pipeline_diagnostics.json']
     artifacts = [dict(name=name, path=os.path.relpath(directory/name, report_directory),
                       media_type='text/csv' if name.endswith('.csv') else 'application/x-ndjson' if name.endswith('.jsonl') else 'application/json',
                       sensitivity='private') for name in names if (directory/name).is_file()]
@@ -262,6 +262,12 @@ def overview(doc):
               table(['Failure type','Instances'],failure.get('by_failure_type',{}).items()),
               failure.get('inclusion','No failure export was supplied for this report.'),failure.get('exclusion',''),
               'The CSV begins with what_went_wrong, expected/observed behavior and failure type; full conversations, returned reasoning and structured evidence follow.']
+    diagnostics=failure.get('pipeline_diagnostics')
+    if diagnostics:
+        lines += ['**Pipeline execution audit**',table(['Recorded issue','Count'],diagnostics['counts'].items())]
+        lines += ['Root causes:']+['- '+md(v) for v in diagnostics['root_causes']]
+        lines += ['Pipeline fixes:']+['- '+md(v) for v in diagnostics['fixes']]
+        lines += [md(diagnostics['historical_outcomes'])]
     lines += ['## Limitations']+[f'- {md(v)}' for v in doc['limitations']]
     lines += ['## Evidence and exports','All evidence references above join to the CSV/JSONL artifacts below. Preserve unknown values; do not add overlapping groups. Exports can contain sensitive content.',
               '- [Common structured report](report.json)']

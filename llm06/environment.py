@@ -32,9 +32,16 @@ class Environment:
         if not d: return block('forbidden_tool')
         try:
             args=json.loads(raw_arguments) if isinstance(raw_arguments,str) else copy.deepcopy(raw_arguments)
-            Draft202012Validator(d['parameters']).validate(args)
-        except (ValueError, TypeError, ValidationError):
-            # Validation errors are protocol failures, not established policy violations.
+        except (ValueError, TypeError) as error:
+            result['argument_error_kind']='json_syntax'
+            result['validation_errors']=[{'path':'$','message':str(error)[:500]}]
+            return block('invalid_arguments',False)
+        errors=list(Draft202012Validator(d['parameters']).iter_errors(args))
+        if errors:
+            result['argument_error_kind']='schema_validation'
+            result['validation_errors']=[{'path':'$'+''.join('['+repr(k)+']' for k in error.path),
+                'validator':error.validator,'message':error.message[:500]} for error in errors[:8]]
+            result['expected_schema']=d['parameters']
             return block('invalid_arguments',False)
         if name in policy.get('forbidden_tools',[]): return block('forbidden_tool')
         if d['permission'] not in policy['permissions']: return block('exceeded_permissions')

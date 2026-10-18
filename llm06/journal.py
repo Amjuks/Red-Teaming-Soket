@@ -2,11 +2,14 @@
 import fcntl
 import json
 import os
+import threading
+from collections import defaultdict
 from datetime import datetime, timezone
 from common import canonical, identity, local_path
 
 class Journal:
     def __init__(self,directory):
+        self.mutex=threading.RLock();self.by_test=defaultdict(list)
         self.directory=local_path(directory); self.directory.mkdir(parents=True,exist_ok=True)
         self.lock=(self.directory/'writer.lock').open('a+')
         try: fcntl.flock(self.lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -27,13 +30,22 @@ class Journal:
             checksum=event.pop('checksum',None)
             if checksum!=identity(event) or event['seq']!=len(self.events):
                 self.close();raise ValueError('journal integrity failure')
-            event['checksum']=checksum;self.events.append(event);offset+=len(line)
+            event['checksum']=checksum;self.events.append(event)
+            if event.get('test_id'):self.by_test[event['test_id']].append(event)
+            offset+=len(line)
         self.file.seek(0,2)
     def append(self,kind,**data):
-        event={'seq':len(self.events),'time':datetime.now(timezone.utc).isoformat(),'kind':kind,**data}
-        event['checksum']=identity(event)
-        self.file.write((canonical(event)+'\n').encode());self.file.flush();os.fsync(self.file.fileno())
-        self.events.append(event);return event
+        with self.mutex:
+            event={'seq':len(self.events),'time':datetime.now(timezone.utc).isoformat(),'kind':kind,**data}
+            event['checksum']=identity(event)
+            self.file.write((canonical(event)+'\n').encode());self.file.flush();os.fsync(self.file.fileno())
+            self.events.append(event)
+            if event.get('test_id'):self.by_test[event['test_id']].append(event)
+            return event
+    def snapshot(self):
+        with self.mutex:return list(self.events)
+    def test_events(self,test_id):
+        with self.mutex:return list(self.by_test.get(test_id,[]))
     def close(self):
         if hasattr(self,'file') and not self.file.closed:self.file.close()
         if not self.lock.closed:self.lock.close()

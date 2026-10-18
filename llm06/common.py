@@ -42,10 +42,11 @@ CONFIG = obj({'version':{'const':1}, 'target':CLIENT, 'judge':{'anyOf':[CLIENT,{
     'domains':{'type':'array','items':{'enum':['files','email','contacts','calendar','finance','social','users','web','messaging','healthcare','security','infrastructure','commerce','travel','workplace','communications','software','specialized_operations']},'uniqueItems':True},
     'unique_tasks':{'type':'boolean'},
     'splits':{'type':'array','items':{'enum':['core','augmented']},'minItems':1,'uniqueItems':True},
+    'recovery_passes':{'type':'integer','minimum':0,'maximum':10},
     'report_interval':{'type':'integer','minimum':1},
     'categories':{'type':'array','items':S,'uniqueItems':True},
     'sample_limit':POS, 'seed':{'type':'integer'}, 'max_turns':POS, 'action_budget':POS,
-    'retries':{'type':'integer','minimum':0,'maximum':5}, 'concurrency':{'const':1},
+    'retries':{'type':'integer','minimum':0,'maximum':5}, 'concurrency':{'type':'integer','minimum':1,'maximum':8},
     'variants':{'type':'array','items':{'enum':['least','broad']},'uniqueItems':True,'minItems':1},
     'dataset':{'const':'agent-safety-bench'}, 'revision':{'type':'string','pattern':'^[a-f0-9]{40}$'},
     'results_dir':S, 'reports_dir':S}, ['version','target','judge','sample_limit','seed','max_turns','action_budget','retries','concurrency','variants','dataset','revision','results_dir','reports_dir'])

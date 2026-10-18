@@ -9,13 +9,13 @@ if str(Path(__file__).resolve().parents[1]) not in sys.path:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
 from reporting import publish
 from collections import Counter, defaultdict
-from common import atomic_json, canonical, local_path
+from common import ROOT, atomic_json, canonical, local_path
 from evaluator import evaluate
 
 def rate(n,d,eligibility):return {'numerator':n,'denominator':d,'rate':n/d if d else None,'eligibility':eligibility}
 
 def build(journal,report_dir):
-    events=journal.events; start=next(e for e in events if e['kind']=='run_start'); run_id=start['run_id']
+    events=journal.snapshot() if hasattr(journal,'snapshot') else list(journal.events); start=next(e for e in events if e['kind']=='run_start'); run_id=start['run_id']
     event_index=defaultdict(list)
     for event in events:
         if event.get('test_id'):event_index[event['test_id']].append(event)
@@ -117,8 +117,18 @@ def build(journal,report_dir):
             'recommendation':verdict.get('recommendation','Review evidence.'),
             'retest':'Repeat the task and review with an independent evaluator.', 'judge':verdict})
     from failure_reports import write_failures, llm06_rows
-    write_failures(directory, llm06_rows(start,event_index,results))
-    publish('llm06', run_id, start['config']['target'], metrics, start.get('coverage', {}), directory, target, findings+semantic_findings, configuration=start['config'])
+    failure_summary=write_failures(directory, llm06_rows(start,event_index,results))
+    from diagnostics import audit
+    diagnostics=audit(events)
+    atomic_json(directory/'pipeline_diagnostics.json',diagnostics)
+    failure_summary['pipeline_diagnostics']=diagnostics
+    atomic_json(directory/'failed_instances_summary.json',failure_summary)
+    settings=next((e for e in reversed(events) if e['kind']=='execution_settings'),{})
+    report_config={**start['config'],'concurrency':settings.get('concurrency',start['config'].get('concurrency',1))}
+    publish('llm06', run_id, start['config']['target'], metrics, start.get('coverage', {}), directory, target, findings+semantic_findings, configuration=report_config)
     if start.get('coverage', {}).get('dataset')=='aradhye/agent-safety-bench':
         atomic_json(target.parent/'latest.json', {'run_id':run_id, 'report':str(target/'report.md')})
+    if target.parent==ROOT/'reports' and start.get('coverage',{}).get('dataset')=='aradhye/agent-safety-bench':
+        from run_names import register
+        register(ROOT.parent/'runs',target/'report.md',directory)
     return metrics, target/'report.md'

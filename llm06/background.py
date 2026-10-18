@@ -60,6 +60,11 @@ def status(directory):
     planned=len(start['tests']) if start else 0
     pending={e['test_id'] for e in events if e['kind']=='judge_pending'}-set(results)
     active=next((e['test_id'] for e in reversed(events) if e['kind']=='test_start' and e['test_id'] not in results),None)
+    workers={}
+    for e in events:
+        if e['kind']=='worker_started':workers[e['test_id']]=True
+        elif e['kind']=='worker_finished':workers.pop(e['test_id'],None)
+    settings=next((e for e in reversed(events) if e['kind']=='execution_settings'),{})
     alive=running(directory)
     state='running' if alive else 'finished' if planned and len(results)==planned else 'stopped or foreground'
     report=local_path(start['config']['reports_dir'])/start['run_id']/'report.md' if start else None
@@ -74,6 +79,6 @@ def status(directory):
         'planned':planned,'finished_tests':len(results),'percent':round(100*len(results)/planned,1) if planned else 0,
         'completed':sum(e['status']=='completed' for e in results.values()),
         'errored':sum(e['status']=='errored' for e in results.values()),'pending_judge':len(pending),
-        'remaining':max(0,planned-len(results)),'active_test':active,'background_active':alive,
+        'remaining':max(0,planned-len(results)),'concurrency':settings.get('concurrency',start['config'].get('concurrency',1) if start else 1),'active_tests':list(workers),'active_test':active,'background_active':alive,
         'last_event_time':events[-1]['time'] if events else None,'log':str(directory/'background.log'),
         'report':str(report) if report else None}

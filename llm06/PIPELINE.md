@@ -203,3 +203,32 @@ calibration and broader task-completion oracles remain future work. Catalog
 consequential operations are deny-only probes, not full mutation simulators.
 Loop normalizes streamed argument JSON and missing usage, so exact wire argument
 bytes and reliable cost may be unavailable. These limits are retained in reports.
+
+## Error recovery and execution audits
+
+A schema error is a tool result, with field-level validation feedback. Valid JSON
+can travel through Loop even when it violates the tool schema, so the target gets
+a chance to correct it. Only malformed JSON cannot be replayed by the typed bridge.
+The eight-turn/action budgets bound repeated errors. No argument is silently fixed.
+
+Incomplete answers get continuation feedback and truncated tool calls are held
+back from execution. Both target and judge default to 4,096 output tokens. Judge
+requests omit duplicate provider/request/snapshot payloads, require concise JSON,
+and include prior validation errors on retry. Original journal evidence stays full.
+Saved assessments include an execution audit explaining the legacy abort behavior;
+only fresh model executions can establish changed outcomes.
+
+Transient stream failures, including response-body decode failures after HTTP 200,
+are retried with bounded backoff. Requests allow 180 seconds and two retries by
+default. Up to three recovery passes retry incomplete evaluations, retaining all
+committed tool state. Tool-turn exhaustion is an assessable model outcome; the
+judge evaluates the incomplete trajectory instead of reporting a pipeline crash.
+
+## Parallel scheduling
+
+A bounded pool runs four independent case state machines by default. Target and
+judge requests inside each case remain ordered. Threads share one process journal,
+whose sequence assignment, write, fsync and index updates are protected by a lock.
+Report generation reads an immutable event-list snapshot. Worker counts and active
+cases are reported, and saved execution settings identify concurrency changes.
+Resume retains completed case IDs and records the new operational settings.
